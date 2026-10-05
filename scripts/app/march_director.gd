@@ -264,7 +264,7 @@ func _complete_base() -> void:
 	board.finish_stage()
 	halt_reason = ""
 	settlement.set_progress(100, false)
-	notice.emit("별등 전진 기지 완성! 북쪽 이끼빛 유적으로 향하세요.")
+	notice.emit("돌아올 기지가 생겼습니다! 북쪽 별잠회랑의 입구를 확보하세요.")
 	base_completed.emit()
 
 # --- Player interaction -------------------------------------------------------

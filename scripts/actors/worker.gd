@@ -116,5 +116,5 @@ func _physics_process(delta: float) -> void:
 
 func _update_caption() -> void:
 	var names := {"carpenter": "목수 로아", "porter": "운반원 누리"}
-	var states := {"camp": "출발 대기", "follow": "동행", "waiting": "빛을 기다리는 중", "to_work": "작업장으로", "working": "자원 회수 중", "returning": "캠프로 운반 중", "delivered": "운반 완료"}
+	var states := {"camp": "출발 대기", "follow": "동행", "waiting": "빛을 기다리는 중", "to_work": "표본 채집장으로", "working": "탐사 표본 회수 중", "returning": "기지로 표본 운반 중", "delivered": "표본 귀환 완료"}
 	caption.text = "%s\n%s" % [names[job], states[state]]

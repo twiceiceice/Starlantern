@@ -85,7 +85,7 @@ func _ruin() -> void:
 	var sign := Node3D.new()
 	sign.position = Vector3(0, 0, -11)
 	world.add_child(sign)
-	Geometry.label(sign, "이끼빛 유적", 6.3, Color("e7dfb9"))
+	Geometry.label(sign, "별잠회랑 · 던전 입구", 6.3, Color("e7dfb9"))
 	for point: Vector3 in [Vector3(-5, 0, -25), Vector3(5, 0, -26)]:
 		_crystal(point)
 

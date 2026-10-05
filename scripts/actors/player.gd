@@ -6,6 +6,9 @@ signal defeated
 signal action_started(action: String)
 
 var view: CharacterView
+var training := CombatTraining.new()
+var protection := 1.0
+var haste := 1.0
 var camera_yaw := 0.0
 var health := 100.0
 var dodge_charges := 2
@@ -57,9 +60,9 @@ func _physics_process(delta: float) -> void:
 		try_dodge(direction)
 	if dodge_left <= 0:
 		if Input.is_action_just_pressed("slam"):
-			try_attack("slam")
+			try_attack(training.secondary)
 		elif Input.is_action_pressed("attack"):
-			try_attack("slash")
+			try_attack(training.primary)
 	if not is_on_floor():
 		velocity.y -= CombatRules.GRAVITY * delta
 	elif Input.is_action_just_pressed("jump") and dodge_left <= 0 and attack_name.is_empty():
@@ -70,6 +73,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z = dodge_direction.z * CombatRules.DODGE_SPEED
 	else:
 		var speed := CombatRules.RUN_SPEED if Input.is_action_pressed("sprint") else CombatRules.WALK_SPEED
+		speed *= haste
 		if not attack_name.is_empty():
 			speed *= 0.42
 		elif carrying:
@@ -87,16 +91,19 @@ func _physics_process(delta: float) -> void:
 		respawn(spawn_point)
 
 func try_attack(action: String) -> bool:
+	if action not in CombatTraining.SCHOOLS:
+		return false
 	if dodge_left > 0 or not attack_name.is_empty() or health <= 0 or carrying:
 		return false
-	if (action == "slash" and slash_cooldown > 0) or (action == "slam" and slam_cooldown > 0):
+	var primary_action := action in CombatTraining.PRIMARY
+	if (primary_action and slash_cooldown > 0) or (not primary_action and slam_cooldown > 0):
 		return false
-	attack_definition = CombatRules.SLAM if action == "slam" else CombatRules.SLASH
+	attack_definition = training.definition(action)
 	attack_name = action
 	attack_elapsed = 0
 	attack_has_hit = false
 	view.rotation.y = camera_yaw + PI
-	if action == "slam":
+	if not primary_action:
 		slam_cooldown = attack_definition.cooldown
 	else:
 		slash_cooldown = attack_definition.cooldown
@@ -130,7 +137,7 @@ func try_dodge(direction: Vector3) -> bool:
 func take_damage(amount: float) -> bool:
 	if invulnerability > 0 or health <= 0:
 		return false
-	health = maxf(0, health - amount)
+	health = maxf(0, health - amount * protection)
 	invulnerability = 0.45
 	if health <= 0:
 		defeated.emit()

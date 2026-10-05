@@ -25,8 +25,10 @@ func _run() -> void:
 	_test_march_plan()
 	await _test_caravan_view()
 	var game = load("res://scenes/main.tscn").instantiate()
+	game.save_enabled = false
 	root.add_child(game)
 	current_scene = game
+	await _test_journal(game)
 	game.resume()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await frames(10)
@@ -117,6 +119,11 @@ func _run() -> void:
 	for worker: ExpeditionWorker in game.workers:
 		check(worker.state not in ["working", "returning", "delivered"], "Worker does not work in the dark ruin: " + worker.name)
 	check("등불" in game.expedition.objective(false), "Objective asks for a forward lantern while the site is dark")
+	player.position = ExpeditionCampaign.RECORD_POSITION + Vector3(0, 0.05, 2)
+	player.velocity = Vector3.ZERO
+	await frames(3)
+	game.interact()
+	check(game.light.planted and not game.expedition.entrance_record, "First interaction at a dark record plants a lantern instead of reading it")
 	player.position = game.camp_position + Vector3(8, 0.05, 0)
 	check(not game.light.can_plant(player.global_position), "Forward lantern cannot be planted inside the camp light")
 	player.position = Vector3(0, 0.05, -24)
@@ -124,6 +131,7 @@ func _run() -> void:
 	check("등불" in game.interaction_prompt(), "Ruin center offers to plant the forward lantern")
 	game.interact()
 	check(game.light.planted and game.light.is_lit(Vector3(4, 0, -24)) and game.light.is_lit(Vector3(-4, 0, -24)), "Planted lantern lights both work sites")
+	check(not game.expedition.entrance_record, "Interacting out of record range does not collect it")
 	var waited := 0
 	while waited < 900 and not game.workers.any(func(w): return w.state == "working"):
 		await frames(10)
@@ -149,13 +157,32 @@ func _run() -> void:
 	await frames(2000)
 	for worker: ExpeditionWorker in game.workers:
 		check(worker.state == "delivered", "Worker navigates to resources, works and returns: " + worker.name)
-	check(game.expedition.stage == Expedition.Stage.REPORT, "Both deliveries unlock the report")
+	check(game.expedition.stage == Expedition.Stage.RECOVERING and not game.expedition.report(), "Both samples still require the player's survey before reporting")
+	player.position = ExpeditionCampaign.RECORD_POSITION + Vector3(0, 1.2, 1)
+	player.velocity = Vector3.ZERO
+	await frames(2)
+	game.interact()
+	check(not game.expedition.entrance_record, "The record cannot be collected while airborne")
+	player.position = ExpeditionCampaign.RECORD_POSITION + Vector3(0, 0.05, 2)
+	player.velocity = Vector3.ZERO
+	var obstruction := Geometry.solid_box(game.gameplay, ExpeditionCampaign.RECORD_POSITION + Vector3(0, 1, 1), Vector3(1, 2, 0.2), Color.GRAY)
+	await frames(3)
+	game.interact()
+	check(not game.expedition.entrance_record, "The record cannot be collected through a wall")
+	obstruction.queue_free()
+	await frames(3)
+	check("기록 확보" in game.interaction_prompt(), "The lit record advertises its survey interaction")
+	game.interact()
+	check(game.expedition.entrance_record and game.expedition.stage == Expedition.Stage.REPORT, "Surveying the lit record after both deliveries unlocks the report")
 	player.position = Vector3(0, 0.05, -8)
 	game.interact()
 	check(game.expedition.stage == Expedition.Stage.REPORT, "Cannot claim rewards away from camp")
 	player.position = game.camp_position
 	game.interact()
 	check(game.expedition.resources.timber == 12 and game.expedition.resources.crystal == 6, "Camp report grants the expedition resources")
+	check(paused and game.hud.journal.visible and "대장정 완료" in game.hud.journal_title.text, "Reporting opens the completed campaign journal and pauses the game")
+	game.close_journal()
+	check(not paused and not game.hud.journal.visible, "Closing the ending returns to the completed world")
 	game.interact()
 	check(game.expedition.resources.timber == 12, "Repeated camp interaction does not duplicate rewards")
 	# Pause freezes actors and their cooldowns, then resumes cleanly.
@@ -170,11 +197,54 @@ func _run() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await frames(15)
 	check(player.slam_cooldown < 3, "Resume restarts simulation")
+	await CareerTests.run(game,check,frames)
 	game.free()
 	print("TEST_RESULT: %d checks, %d failures" % [checks, failures.size()])
 	for failure in failures:
 		print("  - ", failure)
 	quit(0 if failures.is_empty() else 1)
+
+func journal_key(key: Key) -> void:
+	var event := InputEventKey.new()
+	event.physical_keycode = key
+	event.pressed = true
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
+	event = InputEventKey.new()
+	event.physical_keycode = key
+	event.pressed = false
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
+
+func _test_journal(game) -> void:
+	await frames(2)
+	journal_key(KEY_J)
+	await frames(2)
+	check(paused and game.hud.journal.visible and not game.hud.menu.visible, "J opens the campaign briefing from the initial menu")
+	journal_key(KEY_ESCAPE)
+	await frames(2)
+	check(paused and game.hud.menu.visible and not game.started, "Closing the initial journal returns to the menu without starting")
+	game.resume()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	await frames(3)
+	game.player.slam_cooldown = 3
+	journal_key(KEY_J)
+	await frames(2)
+	var at: Vector3 = game.player.position
+	var food: float = game.director.caravan.food
+	Input.action_press("move_forward")
+	await frames(20)
+	Input.action_release("move_forward")
+	check(paused and game.player.position == at and game.player.slam_cooldown == 3 and game.director.caravan.food == food, "Reading the journal freezes movement, cooldowns and caravan resources")
+	check(game.expedition.stage == Expedition.Stage.CAMP and not game.expedition.entrance_record, "Reading the journal never advances the campaign or reveals its record")
+	journal_key(KEY_J)
+	await frames(2)
+	check(not paused and not game.hud.journal.visible, "J closes the journal and resumes active play")
+	game.pause()
+	game.hud.journal_requested.emit()
+	await frames(2)
+	game.hud.journal_closed.emit()
+	check(paused and game.hud.menu.visible and not game.hud.journal.visible, "Menu journal buttons preserve an existing pause")
 
 func _test_rules() -> void:
 	check(is_equal_approx(CombatRules.move_direction(Vector2(1, -1), 0).length(), 1), "Diagonal movement is normalized")
@@ -416,6 +486,7 @@ func _test_lanterns() -> void:
 func _test_expedition() -> void:
 	var expedition := Expedition.new()
 	check(not expedition.report(), "Cannot report before expedition")
+	check(not expedition.collect_entrance_record(), "Cannot survey before departure")
 	check(not expedition.record_delivery(0), "Cannot deliver before site is secured")
 	check(expedition.start() and not expedition.start(), "Recruitment runs only once")
 	check(expedition.stage == Expedition.Stage.MARCH, "Departure starts the march")
@@ -427,11 +498,14 @@ func _test_expedition() -> void:
 	expedition.enemy_defeated()
 	expedition.enemy_defeated()
 	check(expedition.stage == Expedition.Stage.CLEARING, "Two kills do not unlock a three-enemy site")
+	check(not expedition.collect_entrance_record(), "Remaining guardians prevent surveying the record")
 	check(expedition.enemy_defeated(), "Final kill unlocks the site")
 	check(not expedition.record_delivery(8), "Unknown worker cannot grant progress")
 	check(expedition.record_delivery(0) and not expedition.record_delivery(0), "Duplicate delivery is ignored")
 	check(not expedition.report(), "One delivery cannot finish the expedition")
 	expedition.record_delivery(1)
+	check(expedition.stage == Expedition.Stage.RECOVERING and not expedition.report(), "Deliveries alone do not complete the campaign")
+	check(expedition.collect_entrance_record() and not expedition.collect_entrance_record(), "Surveying happens only once")
 	check(expedition.report() and not expedition.report(), "Report is granted exactly once")
 	var cleared_first := Expedition.new()
 	for _i in range(3):
@@ -440,3 +514,8 @@ func _test_expedition() -> void:
 	cleared_first.march_complete()
 	cleared_first.base_build(100)
 	check(cleared_first.stage == Expedition.Stage.RECOVERING, "Clearing before recruitment is recoverable")
+	check(cleared_first.collect_entrance_record() and not cleared_first.report(), "Survey can happen before deliveries but cannot finish alone")
+	cleared_first.record_delivery(1)
+	check(cleared_first.stage == Expedition.Stage.RECOVERING, "A survey and only one sample still wait for the other worker")
+	cleared_first.record_delivery(0)
+	check(cleared_first.stage == Expedition.Stage.REPORT and cleared_first.report(), "The last delivery unlocks reporting when the survey was done first")

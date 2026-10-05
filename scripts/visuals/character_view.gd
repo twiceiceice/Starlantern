@@ -9,6 +9,7 @@ var leg_left: Node3D
 var leg_right: Node3D
 var tool: Node3D
 var cargo: Node3D
+var focus: Node3D
 var phase := 0.0
 var coat := Color("477794")
 var occupation := "hero"
@@ -54,6 +55,19 @@ func _ready() -> void:
 	Geometry.box(cargo, Vector3.ZERO, Vector3(0.67, 0.48, 0.45), Color("ac7b48"))
 	Geometry.box(cargo, Vector3(0, 0.02, 0.24), Vector3(0.06, 0.5, 0.03), Color("e8c594"))
 	cargo.visible = false
+	if occupation == "hero":
+		focus = Node3D.new()
+		focus.position = tool.position
+		arm_right.add_child(focus)
+		Geometry.cylinder(focus, Vector3(0, 0.2, 0.1), 0.04, 1.15, Color("6c657f"))
+		var gem := Geometry.sphere(focus, Vector3(0, 0.82, 0.1), Vector3.ONE * 0.23, Color("96d9e6"))
+		gem.material_override = Geometry.material(Color("96d9e6"), 0.8)
+		focus.visible = false
+
+func set_magic_focus(enabled: bool) -> void:
+	if is_instance_valid(focus):
+		focus.visible = enabled
+		tool.visible = not enabled
 
 func _limb(parent: Node3D, origin: Vector3, leg: bool, cloth: Color, end: Color) -> Node3D:
 	var pivot := Node3D.new()
@@ -89,5 +103,8 @@ func animate(delta: float, speed: float, grounded: bool, action: String = "", pr
 	elif action == "dodge":
 		body.rotation.x = -0.65
 		body.position.y -= 0.20
+	elif action in ["bolt", "nova", "familiar"]:
+		arm_right.rotation.x = -1.5 * sin(progress * PI)
+		arm_left.rotation.x = -1.1 * sin(progress * PI)
 	elif action == "work":
 		arm_right.rotation.x = -0.5 - absf(sin(phase)) * 1.5

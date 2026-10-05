@@ -5,6 +5,13 @@ signal died(guardian: RuinGuardian)
 signal struck_player
 
 var target: ExpeditionPlayer
+var protected_target: Node3D
+var taunt_left := 0.0
+var exposed_left := 0.0
+var boss := false
+var attack_count := 0
+var attack_radius := 2.4
+var windup_time := 0.95
 var title := "유적 파수꾼"
 var max_health := 96.0
 var health := 96.0
@@ -56,18 +63,25 @@ func _physics_process(delta: float) -> void:
 	velocity.x = 0
 	velocity.z = 0
 	cooldown = maxf(0, cooldown - delta)
-	var to_player := target.global_position - global_position
+	taunt_left = maxf(0, taunt_left - delta)
+	exposed_left = maxf(0, exposed_left - delta)
+	caption.modulate = Color("a3e6ef") if exposed_left > 0 else Color("f7d2ae")
+	var victim := _victim()
+	var to_player := victim.global_position - global_position
 	to_player.y = 0
 	var distance := to_player.length()
 	if state == "windup":
 		timer -= delta
-		visual.scale.y = 0.8 + 0.2 * (timer / 0.95)
+		visual.scale.y = 0.8 + 0.2 * (timer / windup_time)
 		marker.scale = Vector3.ONE * (0.94 + sin(timer * 30) * 0.035)
 		if timer <= 0:
-			var offset := target.global_position - marker_center
-			if Vector2(offset.x, offset.z).length() < 2.45 and absf(offset.y) < 1.2:
-				if target.take_damage(18):
-					struck_player.emit()
+			for body: Node3D in [target, protected_target]:
+				if not is_instance_valid(body): continue
+				var offset := body.global_position - marker_center
+				var ray := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP, body.global_position + Vector3.UP, 1)
+				if Vector2(offset.x, offset.z).length() < attack_radius + 0.05 and absf(offset.y) < 1.2 and get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
+					if body.call("take_damage", 22.0 if boss else 18.0) and body == target:
+						struck_player.emit()
 			clear_marker()
 			state = "recover"
 			timer = 0.65
@@ -82,7 +96,7 @@ func _physics_process(delta: float) -> void:
 		if distance < 3.0 and cooldown <= 0:
 			begin_attack()
 		elif distance > 2.1:
-			_move_toward(target.global_position, delta)
+			_move_toward(victim.global_position, delta)
 	elif global_position.distance_to(home) > 1:
 		_move_toward(home, delta)
 	velocity.x += knockback.x
@@ -104,24 +118,34 @@ func _move_toward(destination: Vector3, delta: float) -> void:
 		visual.position.y = sin(Time.get_ticks_msec() * 0.012) * 0.05
 
 func begin_attack() -> void:
+	clear_marker()
+	attack_count += 1
+	attack_radius = (4.2 if attack_count % 2 == 1 else 2.0) if boss else 2.4
+	windup_time = (1.3 if attack_count % 2 == 1 else 0.70) if boss else 0.95
 	state = "windup"
-	timer = 0.95
-	marker_center = target.global_position
+	timer = windup_time
+	marker_center = _victim().global_position
 	marker_center.y = 0.10
 	marker = Node3D.new()
 	get_parent().add_child(marker)
 	marker.global_position = marker_center
-	Geometry.cylinder(marker, Vector3.ZERO, 2.4, 0.025, Color(0.9, 0.29, 0.2, 0.25))
-	Geometry.ring(marker, 2.4, Color("ee8160"), 0.06)
+	Geometry.cylinder(marker, Vector3.ZERO, attack_radius, 0.025, Color(0.9, 0.29, 0.2, 0.25))
+	Geometry.ring(marker, attack_radius, Color("ee8160"), 0.06)
+
+func _victim() -> Node3D:
+	return protected_target if is_instance_valid(protected_target) and taunt_left <= 0 and float(protected_target.get("health")) > 0 else target
 
 func clear_marker() -> void:
 	if is_instance_valid(marker):
 		marker.queue_free()
 	marker = null
 
-func take_damage(amount: float, direction: Vector3) -> void:
+func take_damage(amount: float, direction: Vector3) -> float:
 	if state == "dead":
-		return
+		return 0
+	amount *= 1.5 if exposed_left > 0 else 1.0
+	var dealt := minf(health, amount)
+	taunt_left = 5.0
 	health = maxf(0, health - amount)
 	knockback = direction * (6.5 if amount >= 40 else 3.0)
 	caption.text = "%s  %d" % [title, health]
@@ -137,12 +161,15 @@ func take_damage(amount: float, direction: Vector3) -> void:
 		var fade := create_tween()
 		fade.tween_property(visual, "scale", Vector3.ZERO, 0.35)
 		fade.tween_callback(queue_free)
+	return dealt
 
 func reset_encounter() -> void:
 	clear_marker()
 	global_position = home
 	velocity = Vector3.ZERO
 	knockback = Vector3.ZERO
+	taunt_left = 0
+	exposed_left = 0
 	health = max_health
 	caption.text = "%s  %d" % [title, health]
 	state = "idle"

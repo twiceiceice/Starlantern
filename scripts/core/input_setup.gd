@@ -6,7 +6,7 @@ static func configure() -> void:
 		"move_forward": [KEY_W, KEY_UP], "move_back": [KEY_S, KEY_DOWN],
 		"jump": [KEY_SPACE], "sprint": [KEY_SHIFT], "dodge": [KEY_CTRL],
 		"attack": [KEY_1, KEY_F], "slam": [KEY_2, KEY_Q],
-		"interact": [KEY_E], "pause": [KEY_ESCAPE], "fullscreen": [KEY_F11]
+		"interact": [KEY_E], "journal": [KEY_J], "growth": [KEY_K], "tactic": [KEY_R], "pause": [KEY_ESCAPE], "fullscreen": [KEY_F11]
 	}
 	for action: String in bindings:
 		if InputMap.has_action(action):

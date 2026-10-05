@@ -1994,7 +1994,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.3, 0)
 pixel_size = 0.006
 billboard = 1
 modulate = Color(0.90588236, 0.8745098, 0.7254902, 1)
-text = "이끼빛 유적"
+text = "별잠회랑 · 던전 입구"
 font = ExtResource("1_e0ef6")
 outline_size = 6
 

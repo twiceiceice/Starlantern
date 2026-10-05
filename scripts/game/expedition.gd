@@ -8,6 +8,7 @@ var remaining_enemies := 3
 var base_progress := 0.0
 var deliveries: Dictionary = {}
 var resources := {"timber": 0, "crystal": 0}
+var entrance_record := false
 
 func start() -> bool:
 	if stage != Stage.CAMP:
@@ -42,9 +43,20 @@ func record_delivery(worker_id: int) -> bool:
 	if stage != Stage.RECOVERING or worker_id not in [0, 1] or deliveries.has(worker_id):
 		return false
 	deliveries[worker_id] = true
-	if deliveries.size() == 2:
-		stage = Stage.REPORT
+	_prepare_report()
 	return true
+
+## Both the player's survey and the crews' recovered samples belong in the report.
+func collect_entrance_record() -> bool:
+	if stage != Stage.RECOVERING or remaining_enemies > 0 or entrance_record:
+		return false
+	entrance_record = true
+	_prepare_report()
+	return true
+
+func _prepare_report() -> void:
+	if stage == Stage.RECOVERING and entrance_record and deliveries.size() == 2:
+		stage = Stage.REPORT
 
 func report() -> bool:
 	if stage != Stage.REPORT:
@@ -56,14 +68,16 @@ func report() -> bool:
 
 func objective(site_lit := true) -> String:
 	match stage:
-		Stage.CAMP: return "출발 게시판에서 E · 맡을 일 고르기"
+		Stage.CAMP: return "별잠회랑 선발 원정 · 게시판에서 E로 맡을 일 고르기"
 		Stage.MARCH: return "원정대와 함께 행군"
 		Stage.BASE: return "전진 기지 건설  ·  %d%%" % base_progress
-		Stage.CLEARING: return "북쪽 유적의 파수꾼 정리  ·  %d / 3" % (3 - remaining_enemies)
+		Stage.CLEARING: return "별잠회랑 입구 확보  ·  파수꾼 %d / 3" % (3 - remaining_enemies)
 		Stage.RECOVERING:
 			if not site_lit:
 				return "유적 안쪽에서 E · 전진 등불 세우기  ·  인부는 빛 안에서만 일합니다"
-			return "인부들이 자원을 회수합니다  ·  운반 %d / 2" % deliveries.size()
-		Stage.REPORT: return "캠프로 돌아가 E · 회수한 자원 정산"
-		Stage.COMPLETE: return "첫 원정 완료  ·  목재 12와 별빛 조각 6 회수"
+			if not entrance_record:
+				return "입구 안쪽 기록판에서 E · 첫 탐사 기록 확보\n인부의 표본 운반 %d / 2" % deliveries.size()
+			return "첫 탐사 기록 확보 · 표본 운반 %d / 2\n등불을 유지하며 조사단의 귀환을 도우세요" % deliveries.size()
+		Stage.REPORT: return "전진 기지에서 E · 기록과 표본을 길드에 보고"
+		Stage.COMPLETE: return "별문이 열린 날 · 대장정 완료\n별등 전진 기지와 첫 탐사 기록 확보"
 	return ""
