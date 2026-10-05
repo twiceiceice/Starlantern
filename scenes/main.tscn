@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/app/game.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/world/expedition_valley.tscn" id="2"]
+
+[node name="Starlantern" type="Node3D"]
+script = ExtResource("1")
+
+[node name="GameWorld" type="Node3D" parent="."]
+process_mode = 1
+
+[node name="ExpeditionValley" parent="GameWorld" instance=ExtResource("2")]

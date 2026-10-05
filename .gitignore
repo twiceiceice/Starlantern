@@ -1,0 +1,8 @@
+.godot/
+.tools/
+builds/
+captures/
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
