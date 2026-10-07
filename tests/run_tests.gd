@@ -17,6 +17,8 @@ func frames(count: int) -> void:
 		await physics_frame
 
 func _run() -> void:
+	CharacterArtTests.run(self, check)
+	await CharacterArtTests.contacts(self, check)
 	_test_rules()
 	_test_expedition()
 	_test_lanterns()
@@ -32,6 +34,7 @@ func _run() -> void:
 	game.resume()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await frames(10)
+	await CampArtTests.run(game, check)
 	var player: ExpeditionPlayer = game.player
 	check(player.is_on_floor(), "Player lands on the native physics floor")
 	var start := player.position
@@ -48,12 +51,13 @@ func _run() -> void:
 	check(player.position.y > 0.7, "Jump leaves the floor")
 	await frames(80)
 	check(player.is_on_floor() and player.position.y < 0.1, "Jump lands without sinking through the floor")
-	player.position = Vector3(22, 0.1, 0)
+	player.position = Vector3(2.8, 0.1, 0)
 	player.velocity = Vector3.ZERO
 	Input.action_press("move_right")
 	await frames(60)
 	Input.action_release("move_right")
-	check(player.position.x < 23.3, "World boundary blocks the CharacterBody3D")
+	check(player.position.x < 3.75, "Bridge railing blocks walking into the river")
+	player.position = Vector3(3.9, 0.1, 153)
 	game.camera_rig.yaw = PI / 2
 	await frames(30)
 	check(game.camera_rig.arm.get_hit_length() < game.camera_rig.distance - 1, "Camera spring arm shortens before a wall")
@@ -64,7 +68,7 @@ func _run() -> void:
 		motion.relative = Vector2(80, 20)
 		Input.parse_input_event(motion)
 		Input.flush_buffered_events()
-		check(game.camera_rig.yaw < -0.2 and game.camera_rig.pitch < -0.5, "Mouse motion rotates camera yaw and pitch")
+		check(game.camera_rig.yaw < -0.2 and game.camera_rig.pitch < -0.38, "Mouse motion rotates camera yaw and pitch")
 	else:
 		print("SKIP: captured mouse motion needs a native display; covered by capture_scene.gd")
 	game.camera_rig.yaw = 0
@@ -198,6 +202,7 @@ func _run() -> void:
 	await frames(15)
 	check(player.slam_cooldown < 3, "Resume restarts simulation")
 	await CareerTests.run(game,check,frames)
+	await RegionTests.run(game,check,frames)
 	game.free()
 	print("TEST_RESULT: %d checks, %d failures" % [checks, failures.size()])
 	for failure in failures:
@@ -296,21 +301,21 @@ func play_leg(game, role: String) -> Dictionary:
 	var plan: MarchPlan = director.plan
 	var result := {"advanced": 0, "stretches": 0, "waited_for_arrival": true, "npc_done": true}
 	var leg := plan.leg
-	while plan.leg == leg and game.expedition.stage == Expedition.Stage.MARCH:
+	while plan.leg == leg and game.expedition.stage == Expedition.Stage.MARCH and not director.crossing_ready:
 		var stretch := plan.stretch
 		var start: float = director.caravan.distance
 		var guard := 0
 		while not plan.active_step(role).is_empty() and guard < 12:
 			await do_player_step(game, role)
 			guard += 1
-		var moved := await wait_until(func(): return plan.leg != leg or plan.stretch != stretch or game.expedition.stage != Expedition.Stage.MARCH, 3000)
+		var moved := await wait_until(func(): return director.crossing_ready or plan.leg != leg or plan.stretch != stretch or game.expedition.stage != Expedition.Stage.MARCH, 4200)
 		if not moved:
 			result.npc_done = false
 			break
 		result.stretches += 1
 		if director.caravan.distance > start + 1.0:
 			result.advanced += 1
-		if plan.leg == leg and absf(director.caravan.distance - plan.previous_checkpoint()) > 0.05:
+		if not director.crossing_ready and plan.leg == leg and absf(director.caravan.distance - plan.previous_checkpoint()) > 0.05:
 			result.waited_for_arrival = false
 	return result
 
@@ -347,7 +352,22 @@ func _test_march(game, player: ExpeditionPlayer) -> void:
 	check(foes.size() > 0 and foes.any(func(e): return is_instance_valid(e) and e.state != "dead"), "Guards do not take the player's chosen fight")
 	var leg2 := await play_leg(game, "clear")
 	check(leg2.npc_done and leg2.advanced == leg2.stretches and leg2.stretches == 3, "Lamplighters light leg 2 while the player fights through it")
-	check(game.expedition.stage == Expedition.Stage.BASE, "Finishing leg 2 reaches the base site")
+	check(game.expedition.stage == Expedition.Stage.MARCH and director.crossing_ready and game.region_id == RegionLayout.MEADOW, "Finishing leg 2 holds at the river until the player chooses to travel")
+	var old_director: WeakRef = weakref(director)
+	var old_world: WeakRef = weakref(game.landscape)
+	var travel_people := caravan.people
+	var travel_food := caravan.food
+	player.position = RegionLayout.CROSSING + Vector3(4, 0.05, 1)
+	await frames(2)
+	check(game.travel_destination() == RegionLayout.FOREST, "Secured crossing offers travel at the far-bank sign")
+	game.interact()
+	check(game.changing_region and paused, "Travel fades and pauses gameplay")
+	check(await wait_until(func(): return not game.changing_region, 300), "Transition completes and resumes gameplay")
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	director = game.director
+	check(old_world.get_ref() == null and old_director.get_ref() == null, "Old region geometry and runtime director are unloaded")
+	check(game.region_id == RegionLayout.FOREST and game.expedition.stage == Expedition.Stage.BASE, "Crossing leads to the separate forest base map")
+	check(caravan.people == travel_people and absf(caravan.food - travel_food) < 1, "Travel retains expedition people and supplies without consuming time during the fade")
 	check(game.light.lit_by_anchor(director.base_center), "Arrival lights the base site")
 	check(director.posts.size() == 2 and director.halt_reason == "choice", "Base site offers two quests")
 	check(await choose(game, "base_carry"), "Base offers the carrying quest")

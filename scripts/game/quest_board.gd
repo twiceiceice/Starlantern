@@ -5,10 +5,10 @@ extends RefCounted
 
 const QUESTS := {
 	"leg1_clear": {"title": "길목의 파수꾼 토벌", "role": "clear", "detail": "행렬을 막는 파수꾼을 직접 정리합니다.\n등불은 등불꾼이 느리게 세웁니다.", "next": "leg2_chief"},
-	"leg1_light": {"title": "숲길 등불 밝히기", "role": "light", "detail": "표시된 등불 자리에 등불을 세웁니다.\n파수꾼은 경비대가 맡지만 사람을 잃습니다."},
-	"leg2_clear": {"title": "고갯길 파수꾼 토벌", "role": "clear", "detail": "고갯길의 파수꾼을 직접 정리합니다.\n등불은 등불꾼이 느리게 세웁니다."},
+	"leg1_light": {"title": "초원길 등불 밝히기", "role": "light", "detail": "표시된 등불 자리에 등불을 세웁니다.\n파수꾼은 경비대가 맡지만 사람을 잃습니다."},
+	"leg2_clear": {"title": "도하장 파수꾼 토벌", "role": "clear", "detail": "도하장의 파수꾼을 직접 정리합니다.\n등불은 등불꾼이 느리게 세웁니다."},
 	"leg2_chief": {"title": "연속 · 파수꾼 우두머리 추적", "role": "clear", "detail": "길목에서 본 흔적을 따라 우두머리까지 정리합니다.\n등불은 등불꾼이 느리게 세웁니다.", "chief": true},
-	"leg2_light": {"title": "고갯길 등불 밝히기", "role": "light", "detail": "고갯길의 등불 자리에 등불을 세웁니다.\n파수꾼은 경비대가 맡지만 사람을 잃습니다."},
+	"leg2_light": {"title": "도하장 등불 밝히기", "role": "light", "detail": "도하장의 등불 자리에 등불을 세웁니다.\n파수꾼은 경비대가 맡지만 사람을 잃습니다."},
 	"base_carry": {"title": "기지 자재 나르기", "role": "carry", "detail": "짐마차의 자재를 하치장으로 옮겨 건설을 앞당깁니다.\n습격은 경비대가 막지만 사람을 잃습니다."},
 	"base_defend": {"title": "기지 습격 막기", "role": "defend", "detail": "기지 둘레의 습격자를 직접 막습니다.\n자재는 인부들이 천천히 옮깁니다."},
 }

@@ -22,6 +22,8 @@ const HIDE := [Color("7a5a40"), Color("5f4a3a"), Color("94775a")]
 
 var caravan: Caravan
 var moving := false
+var follow_terrain := false
+var arrival_left := 0.0
 var settled := false
 var settle_center := Vector3.ZERO
 var clock := 0.0
@@ -29,6 +31,8 @@ var per_block := {}
 var block_length := 0.0
 var bodies: MultiMeshInstance3D
 var heads: MultiMeshInstance3D
+var hair: MultiMeshInstance3D
+var people_legs: MultiMeshInstance3D
 var mule_bodies: MultiMeshInstance3D
 var mule_heads: MultiMeshInstance3D
 var packs: MultiMeshInstance3D
@@ -41,6 +45,8 @@ var legs: MultiMeshInstance3D
 var wagons: MultiMeshInstance3D
 var covers: MultiMeshInstance3D
 var wheels: MultiMeshInstance3D
+var wagon_trim: MultiMeshInstance3D
+var wagon_load: MultiMeshInstance3D
 var mule_spots: Array[Vector3] = []
 var drawn_distance := -1.0
 var drawn_people := -1
@@ -48,29 +54,20 @@ var drawn_settled := false
 
 func _ready() -> void:
 	per_block = {
-		"people": ceili(caravan.people / float(BLOCKS)),
+		"people": ceili(300.0 / float(BLOCKS)),
 		"mules": ceili(caravan.mules / float(BLOCKS)),
 		"wagons": ceili(caravan.wagons / float(BLOCKS)),
 	}
 	block_length = _people_length() + GAP + ceili(per_block.wagons / 2.0) * WAGON_STEP + GAP
 	var sphere := Geometry.unit_sphere()
-	var body := CapsuleMesh.new()
-	body.radius = 0.24
-	body.height = 0.95
-	body.radial_segments = 8
-	body.rings = 2
+	var body := ExpeditionArt.crowd_torso()
 	var leg := CylinderMesh.new()
 	leg.top_radius = 0.12
 	leg.bottom_radius = 0.1
 	leg.height = 1.0
 	leg.radial_segments = 6
-	var pack := BoxMesh.new()
-	pack.size = Vector3(0.42, 0.62, 0.85)
-	var roll := CylinderMesh.new()
-	roll.top_radius = 0.28
-	roll.bottom_radius = 0.28
-	roll.height = 1.25
-	roll.radial_segments = 8
+	var pack := CampArt.station_mesh("pannier")
+	var roll := CampArt.station_mesh("bedroll")
 	var horn := CylinderMesh.new()
 	horn.top_radius = 0.02
 	horn.bottom_radius = 0.08
@@ -78,32 +75,34 @@ func _ready() -> void:
 	horn.radial_segments = 6
 	var yoke := BoxMesh.new()
 	yoke.size = Vector3(0.12, 0.12, 1.4)
-	var wagon := BoxMesh.new()
-	wagon.size = Vector3(1.5, 0.7, 2.4)
-	var cover := CylinderMesh.new()
-	cover.top_radius = 0.75
-	cover.bottom_radius = 0.75
-	cover.height = 2.3
-	cover.radial_segments = 10
-	var wheel := CylinderMesh.new()
-	wheel.top_radius = 0.42
-	wheel.bottom_radius = 0.42
-	wheel.height = 0.12
-	wheel.radial_segments = 12
-	bodies = _crowd(body, caravan.people, COATS)
-	heads = _crowd(sphere, caravan.people, SKIN)
-	mule_bodies = _crowd(sphere, caravan.mules, FUR)
-	mule_heads = _crowd(sphere, caravan.mules, FUR)
-	packs = _crowd(pack, caravan.mules * 2, CANVAS)
-	bundles = _crowd(roll, caravan.mules, [Color("a85b48"), Color("5f7f8f"), Color("8a8f55")])
-	ox_bodies = _crowd(sphere, caravan.oxen, HIDE)
-	ox_heads = _crowd(sphere, caravan.oxen, HIDE)
+	var wagon := ExpeditionArt.wagon_mesh()
+	var cover := ExpeditionArt.wagon_cover()
+	var wheel := ExpeditionArt.wheel_mesh()
+	bodies = _crowd(body, 300, COATS)
+	heads = _crowd(sphere, 300, SKIN)
+	hair = _crowd(sphere, 300, [Color("42382e"),Color("69594a"),Color("383734")])
+	people_legs = _crowd(ExpeditionArt.crowd_leg(), 600, [Color("42463d"),Color("4e463a")])
+	mule_bodies = _crowd(ExpeditionArt.animal_body(), caravan.mules, FUR)
+	mule_heads = _crowd(ExpeditionArt.animal_head(), caravan.mules, FUR)
+	packs = _crowd(pack, caravan.mules * 2, [Color.WHITE])
+	bundles = _crowd(roll, caravan.mules, [Color.WHITE, Color("c9d6bf"), Color("d8c4b0")])
+	packs.material_override = null
+	bundles.material_override = null
+	ox_bodies = _crowd(ExpeditionArt.animal_body(), caravan.oxen, HIDE)
+	ox_heads = _crowd(ExpeditionArt.animal_head(), caravan.oxen, HIDE)
 	horns = _crowd(horn, caravan.oxen * 2, [Color("eadfc6")])
 	yokes = _crowd(yoke, caravan.oxen, [Color("6f5a40")])
 	legs = _crowd(leg, (caravan.mules + caravan.oxen) * 4, [Color("5c4a3a")])
 	wagons = _crowd(wagon, caravan.wagons, [Color("a5835a")])
 	covers = _crowd(cover, caravan.wagons, [Color("e9dfc4"), Color("dcd0b0")])
 	wheels = _crowd(wheel, caravan.wagons * 4, [Color("5c4a3a")])
+	wagon_trim = _crowd(CampArt.station_mesh("wagon_trim"),caravan.wagons,[Color.WHITE])
+	wagon_load = _crowd(CampArt.station_mesh("wagon_load"),caravan.wagons,[Color.WHITE])
+	wagon_trim.material_override = null
+	wagon_load.material_override = null
+	wagons.material_override = ExpeditionArt.material("wood",Color("896e4f"))
+	covers.material_override = ExpeditionArt.material("canvas",Color("bcb198"))
+	wheels.material_override = ExpeditionArt.material("wood",Color("5f4b38"))
 	mule_spots.resize(caravan.mules)
 	refresh()
 
@@ -116,10 +115,11 @@ func _crowd(resource: Mesh, count: int, palette: Array) -> MultiMeshInstance3D:
 	return Geometry.instances(self, resource, transforms, colors)
 
 func _process(delta: float) -> void:
+	arrival_left = maxf(0, arrival_left - delta)
 	if moving:
 		clock += delta
 	# Halted columns stand still; skip rewriting ~1500 transforms when nothing changed.
-	if moving or caravan.distance != drawn_distance or caravan.people != drawn_people or settled != drawn_settled:
+	if arrival_left > 0 or moving or caravan.distance != drawn_distance or caravan.people != drawn_people or settled != drawn_settled:
 		refresh()
 
 func column_length() -> float:
@@ -140,11 +140,17 @@ func refresh() -> void:
 	drawn_settled = settled
 	bodies.multimesh.visible_instance_count = caravan.people
 	heads.multimesh.visible_instance_count = caravan.people
+	hair.multimesh.visible_instance_count = caravan.people
+	people_legs.multimesh.visible_instance_count = caravan.people * 2
 	for i in caravan.people:
 		var frame := _person_frame(i)
 		var bob := absf(sin(clock * 9.0 + i)) * 0.07 if moving else 0.0
-		bodies.multimesh.set_instance_transform(i, frame.translated_local(Vector3(0, 0.5 + bob, 0)))
-		heads.multimesh.set_instance_transform(i, frame * Transform3D(Basis().scaled(Vector3(0.4, 0.38, 0.4)), Vector3(0, 1.17 + bob, 0)))
+		bodies.multimesh.set_instance_transform(i, frame.translated_local(Vector3(0, bob, 0)))
+		heads.multimesh.set_instance_transform(i, frame * Transform3D(Basis().scaled(Vector3(.24,.28,.235)), Vector3(0,1.75+bob,0)))
+		hair.multimesh.set_instance_transform(i, frame * Transform3D(Basis().scaled(Vector3(.25,.13,.245)), Vector3(0,1.87+bob,.015)))
+		for side in 2:
+			var swing := sin(clock*9.0+i+(PI if side == 1 else 0.0))*.38 if moving else 0.0
+			people_legs.multimesh.set_instance_transform(i*2+side,frame*Transform3D(Basis(Vector3.RIGHT,swing),Vector3(-.12 if side == 0 else .12,.98+bob,0)))
 	for i in caravan.mules:
 		var frame := _mule_frame(i)
 		mule_spots[i] = frame.origin
@@ -155,11 +161,13 @@ func refresh() -> void:
 		for side in 2:
 			var x := -0.68 if side == 0 else 0.68
 			packs.multimesh.set_instance_transform(i * 2 + side, frame.translated_local(Vector3(x, 1.22 + bob, 0.05)))
-		bundles.multimesh.set_instance_transform(i, frame * Transform3D(Basis(Vector3.FORWARD, PI / 2), Vector3(0, 1.95 + bob, 0.15)))
+		bundles.multimesh.set_instance_transform(i, frame * Transform3D(Basis(), Vector3(0, 1.95 + bob, 0.15)))
 		_legs(i * 4, frame, Vector3(0.3, 1.05, 0.6), 1.7, phase)
 	for i in caravan.wagons:
 		var frame := _wagon_frame(i)
 		wagons.multimesh.set_instance_transform(i, frame.translated_local(Vector3(0, 0.85, 0)))
+		wagon_trim.multimesh.set_instance_transform(i, frame.translated_local(Vector3(0,.85,0)))
+		wagon_load.multimesh.set_instance_transform(i, frame.translated_local(Vector3(0,.85,0)))
 		covers.multimesh.set_instance_transform(i, frame * Transform3D(Basis(Vector3.RIGHT, PI / 2), Vector3(0, 1.3, 0)))
 		var turn := clock * 2.4 if moving else 0.0
 		for w in 4:
@@ -193,13 +201,19 @@ func _people_length() -> float:
 
 func _person_frame(i: int) -> Transform3D:
 	if settled:
-		const PER_ROW := 22
-		var row := i / PER_ROW
-		return Transform3D(Basis(), settle_center + Vector3(((i % PER_ROW) - (PER_ROW - 1) * 0.5) * 0.75 + (row % 2) * 0.35, 0, 12.5 + row * 0.7))
+		# Six crew groups leave the central road and construction plots open.
+		var group := i / 50
+		var local := i % 50
+		var side := -1.0 if group % 2 == 0 else 1.0
+		var point := settle_center + Vector3(side * 32 + ((local % 10) - 4.5) * 0.8, 0, 18 + (group / 2) * 12 + (local / 10) * 0.85)
+		point.z += arrival_left * 0.8 * float(i % 5) / 4.0
+		return Transform3D(Basis(Vector3.UP, side * -0.7), point)
 	var k: int = i % per_block.people
 	var back: float = 1.0 + (i / per_block.people) * block_length + (k / LANES) * ROW
-	const CAMP_ROW := 14
-	var parked := caravan.route[0] + Vector3(((i % CAMP_ROW) - (CAMP_ROW - 1) * 0.5) * 0.72, 0, -3.0 + (i / CAMP_ROW) * 0.75)
+	var group := i / 50
+	var local := i % 50
+	var side := -1.0 if group % 2 == 0 else 1.0
+	var parked := Vector3(side * 34 + ((local % 10) - 4.5) * 0.72, 0, 132 + (group / 2) * 14 + (local / 10) * 0.75)
 	return _formation(back, ((k % LANES) - (LANES - 1) * 0.5) * 0.75, parked, Basis())
 
 func _mule_frame(i: int) -> Transform3D:
@@ -235,14 +249,17 @@ func _ox_frame(i: int) -> Transform3D:
 ## Where a member `back` meters behind the front stands, facing along the road.
 ## Before its turn it waits at `parked`; for the last WALK_OUT meters it walks to the road.
 func _formation(back: float, lateral: float, parked: Vector3, parked_basis: Basis) -> Transform3D:
-	var ahead := (caravan.route[1] - caravan.route[0]).normalized()
-	var side := ahead.cross(Vector3.UP).normalized()
 	var at := caravan.distance - back
+	var ahead := caravan.direction_at(maxf(0, at))
+	var side := ahead.cross(Vector3.UP).normalized()
 	if at >= 0:
-		return Transform3D(Basis.looking_at(ahead, Vector3.UP), caravan.point_at(at) + side * lateral)
-	if at <= -WALK_OUT:
-		return Transform3D(parked_basis, Vector3(parked.x, 0, parked.z))
+		var point := caravan.point_at(at) + side * lateral
+		if follow_terrain: point = RegionLayout.on_ground(RegionLayout.MEADOW, point)
+		return Transform3D(Basis.looking_at(ahead, Vector3.UP), point)
+	var waiting := RegionLayout.on_ground(RegionLayout.MEADOW, parked) if follow_terrain else Vector3(parked.x, 0, parked.z)
+	if at <= -WALK_OUT: return Transform3D(parked_basis, waiting)
 	var road := caravan.route[0] + side * lateral
-	var walk := road - Vector3(parked.x, 0, parked.z)
-	var spot := Vector3(parked.x, 0, parked.z).lerp(road, (at + WALK_OUT) / WALK_OUT)
+	var walk := road - waiting
+	var spot := waiting.lerp(road, (at + WALK_OUT) / WALK_OUT)
+	if follow_terrain: spot = RegionLayout.on_ground(RegionLayout.MEADOW, spot)
 	return Transform3D(Basis.looking_at(walk.normalized() if walk.length() > 0.01 else ahead, Vector3.UP), spot)

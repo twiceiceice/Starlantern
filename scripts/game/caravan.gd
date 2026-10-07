@@ -18,26 +18,32 @@ var lost := 0
 var distance := 0.0
 var route := PackedVector3Array()
 var hunger := 0.0
+var cumulative := PackedFloat32Array()
 
 func _init(points: PackedVector3Array = PackedVector3Array()) -> void:
 	route = points
+	cumulative.append(0.0)
+	for i in range(1, route.size()):
+		cumulative.append(cumulative[-1] + route[i - 1].distance_to(route[i]))
 
 func length() -> float:
-	var total := 0.0
-	for i in range(1, route.size()):
-		total += route[i - 1].distance_to(route[i])
-	return total
+	return cumulative[-1] if not cumulative.is_empty() else 0.0
 
 func point_at(at: float) -> Vector3:
-	if route.is_empty():
-		return Vector3.ZERO
-	var left := maxf(0, at)
-	for i in range(1, route.size()):
-		var segment := route[i - 1].distance_to(route[i])
-		if left <= segment:
-			return route[i - 1].lerp(route[i], left / segment)
-		left -= segment
-	return route[route.size() - 1]
+	if route.is_empty(): return Vector3.ZERO
+	if route.size() == 1: return route[0]
+	var low := 1
+	var high := route.size() - 1
+	while low < high:
+		var middle := (low + high) / 2
+		if cumulative[middle] < at: low = middle + 1
+		else: high = middle
+	var length_of_segment := cumulative[low] - cumulative[low - 1]
+	return route[low - 1].lerp(route[low], clampf((at - cumulative[low - 1]) / maxf(0.001, length_of_segment), 0, 1))
+
+func direction_at(at: float) -> Vector3:
+	var direction := point_at(minf(length(), at + 0.8)) - point_at(maxf(0, at - 0.8))
+	return direction.normalized() if direction.length_squared() > 0.00001 else Vector3.FORWARD
 
 func front() -> Vector3:
 	return point_at(distance)

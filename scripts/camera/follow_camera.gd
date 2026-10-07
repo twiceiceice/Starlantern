@@ -3,8 +3,8 @@ extends Node3D
 
 var target: ExpeditionPlayer
 var yaw := 0.0
-var pitch := -0.48
-var distance := 8.8
+var pitch := -0.34
+var distance := 6.8
 var arm: SpringArm3D
 var camera: Camera3D
 var trauma := 0.0
@@ -21,8 +21,8 @@ func _ready() -> void:
 	add_child(arm)
 	camera = Camera3D.new()
 	camera.current = true
-	camera.fov = 60
-	camera.far = 180
+	camera.fov = 66
+	camera.far = 650
 	# The initial menu pauses physics before SpringArm3D's first update.
 	camera.position.z = distance
 	arm.add_child(camera)

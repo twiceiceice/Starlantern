@@ -10,6 +10,19 @@ var deliveries: Dictionary = {}
 var resources := {"timber": 0, "crystal": 0}
 var entrance_record := false
 
+func to_data() -> Dictionary:
+	return {"stage": stage, "base_progress": base_progress, "remaining_enemies": remaining_enemies,
+		"entrance_record": entrance_record, "deliveries": deliveries.keys()}
+
+func restore(data: Dictionary) -> void:
+	stage = clampi(int(data.get("stage", 0)), Stage.CAMP, Stage.COMPLETE) as Stage
+	base_progress = clampf(float(data.get("base_progress", 0)), 0, 100)
+	remaining_enemies = clampi(int(data.get("remaining_enemies", 3)), 0, 3)
+	entrance_record = bool(data.get("entrance_record", false))
+	deliveries.clear()
+	for id in data.get("deliveries", []):
+		if int(id) in [0, 1]: deliveries[int(id)] = true
+
 func start() -> bool:
 	if stage != Stage.CAMP:
 		return false

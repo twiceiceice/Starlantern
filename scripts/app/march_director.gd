@@ -11,9 +11,9 @@ extends Node3D
 signal departed
 signal notice(text: String)
 signal base_completed
+signal checkpoint_reached
 
-const ROUTE := [Vector3(0, 0, 146), Vector3(0, 0, 26)]
-const SPOT_RADIUS := 10.0
+const SPOT_RADIUS := 19.0
 const THREAT_RANGE := 14.0
 const LAMPLIGHTER_DELAY := 6.0
 const SCOUT_DELAY := 7.0
@@ -30,7 +30,9 @@ const ROLE_CREWS := {"clear": "경비대", "light": "등불꾼"}
 var expedition: Expedition
 var light: LanternNetwork
 var player: ExpeditionPlayer
-var caravan := Caravan.new(PackedVector3Array(ROUTE))
+var caravan := Caravan.new(RegionLayout.route())
+var region := RegionLayout.MEADOW
+var crossing_ready := false
 var board := QuestBoard.new()
 var plan := MarchPlan.new()
 var base_center := BASE_CENTER
@@ -48,14 +50,22 @@ var caravan_view: CaravanView
 var settlement: SettlementView
 
 func _ready() -> void:
+	plan.route = caravan
 	caravan_view = CaravanView.new()
 	caravan_view.caravan = caravan
+	caravan_view.follow_terrain = region == RegionLayout.MEADOW
 	caravan_view.settle_center = BASE_CENTER
+	caravan_view.settled = region == RegionLayout.FOREST
 	add_child(caravan_view)
-	settlement = SettlementView.new()
-	settlement.position = BASE_CENTER
-	add_child(settlement)
-	_spawn_posts(ROUTE[0] + Vector3(0, 0, -3))
+	caravan_view.visible = region == RegionLayout.FOREST or expedition.stage <= Expedition.Stage.MARCH
+	if region == RegionLayout.FOREST:
+		settlement = SettlementView.new()
+		settlement.position = BASE_CENTER
+		add_child(settlement)
+		if is_instance_valid(settlement): settlement.set_progress(expedition.base_progress, expedition.stage == Expedition.Stage.BASE)
+		if expedition.stage == Expedition.Stage.BASE: _base_supplies()
+	elif expedition.stage == Expedition.Stage.CAMP:
+		_spawn_posts(caravan.route[0] + Vector3(0, 0, -3))
 
 func _spawn_guardian(at: Vector3, title: String, health: float) -> RuinGuardian:
 	var guardian := RuinGuardian.new()
@@ -81,14 +91,16 @@ func step_spots(role: String) -> Array:
 
 func _physics_process(delta: float) -> void:
 	caravan_view.moving = false
+	if region == RegionLayout.MEADOW and expedition.stage >= Expedition.Stage.BASE: return
 	match expedition.stage:
 		Expedition.Stage.MARCH:
+			if crossing_ready: return
 			caravan.consume(delta)
 			_march(delta)
 		Expedition.Stage.BASE:
 			caravan.consume(delta)
 			_build(delta)
-	settlement.set_progress(expedition.base_progress, expedition.stage == Expedition.Stage.BASE)
+	if is_instance_valid(settlement): settlement.set_progress(expedition.base_progress, expedition.stage == Expedition.Stage.BASE)
 
 func _halt(reason: String, delta: float) -> void:
 	halt_time = halt_time + delta if reason == halt_reason else 0.0
@@ -130,6 +142,7 @@ func _arrive() -> void:
 		return
 	plan.next_stretch()
 	_open_steps()
+	checkpoint_reached.emit()
 	var next: Dictionary = plan.active_step(board.role())
 	notice.emit("행렬이 다음 지점에 도착했습니다.  다음 일: %s" % next.get("text", "원정대 작업 대기"))
 
@@ -222,18 +235,25 @@ func _finish_leg() -> void:
 		plan.next_leg(false)
 		notice.emit("%s 통과! 게시판에서 다음 구간의 일을 고르세요." % leg_name)
 		_spawn_posts(caravan.front() + Vector3(0, 0, -2.5))
+		checkpoint_reached.emit()
 		return
-	expedition.march_complete()
+	crossing_ready = true
+	halt_reason = "crossing"
+	_clear_posts()
+	notice.emit("도하 완료! 다리 건너 표지판에서 E · 숲의 전진 기지로 이동합니다.")
+	checkpoint_reached.emit()
+
+func _base_supplies() -> void:
 	light.add_anchor(BASE_CENTER, 9.5)
-	caravan_view.settled = true
-	notice.emit("전진 기지 터에 도착했습니다. 원정대가 짐을 풉니다.")
-	_spawn_posts(caravan.front() + Vector3(0, 0, -2.5))
+	_spawn_posts(BASE_CENTER + Vector3(0, 0, 7.5))
 	var pile := Node3D.new()
 	add_child(pile)
 	pile.position = crate_pile
 	for i in range(3):
-		Geometry.box(pile, Vector3((i - 1) * 0.8, 0.35, 0), Vector3(0.7, 0.7, 0.7), Color("bd955e"))
-	Geometry.box(pile, Vector3(-0.4, 1.05, 0), Vector3(0.7, 0.7, 0.7), Color("ad8b5c"))
+		var crate := CampArt.place(pile, "single_crate", Vector3((i - 1) * 0.8, 0, 0), false)
+		crate.scale = Vector3(.72, .7, .72)
+	var top := CampArt.place(pile, "single_crate", Vector3(-0.4, .73, 0), false)
+	top.scale = Vector3(.72, .7, .72)
 	Geometry.label(pile, "기지 자재", 1.9, Color("f7e1af"))
 	var drop := Node3D.new()
 	add_child(drop)
@@ -266,10 +286,12 @@ func _complete_base() -> void:
 	settlement.set_progress(100, false)
 	notice.emit("돌아올 기지가 생겼습니다! 북쪽 별잠회랑의 입구를 확보하세요.")
 	base_completed.emit()
+	checkpoint_reached.emit()
 
 # --- Player interaction -------------------------------------------------------
 
 func prompt() -> String:
+	if region == RegionLayout.MEADOW and expedition.stage >= Expedition.Stage.BASE: return ""
 	var post := _near_post()
 	if not post.is_empty():
 		var quest: Dictionary = QuestBoard.QUESTS[post.quest]
@@ -284,6 +306,7 @@ func prompt() -> String:
 	return ""
 
 func interact() -> bool:
+	if region == RegionLayout.MEADOW and expedition.stage >= Expedition.Stage.BASE: return false
 	var post := _near_post()
 	if not post.is_empty():
 		_choose(post.quest)
@@ -318,6 +341,7 @@ func _choose(id: String) -> void:
 	if expedition.stage == Expedition.Stage.BASE:
 		for at: Vector3 in RAIDER_SPOTS:
 			raiders.append(_spawn_guardian(at, "습격자", 96))
+	checkpoint_reached.emit()
 	var first: Dictionary = plan.active_step(quest.role) if expedition.stage == Expedition.Stage.MARCH else {}
 	notice.emit("[%s] %s  ·  %s" % [QuestBoard.ROLE_NAMES[quest.role], quest.title, first.get("text", quest.detail.get_slice("\n", 0))])
 
@@ -351,7 +375,7 @@ func _near_spot() -> Dictionary:
 func _spawn_posts(at: Vector3) -> void:
 	var offers := board.offers()
 	for i in offers.size():
-		var spot := at + Vector3(-3.2 if i == 0 else 3.2, 0, 0)
+		var spot := RegionLayout.on_ground(region, at + Vector3(-3.2 if i == 0 else 3.2, 0, 0))
 		var node := Node3D.new()
 		add_child(node)
 		node.position = spot
@@ -397,6 +421,7 @@ func title() -> String:
 	return "01   /   행군 · %s" % MarchPlan.LEGS[plan.leg].name
 
 func objective() -> String:
+	if crossing_ready and expedition.stage == Expedition.Stage.MARCH: return "도하 완료 · 강 건너 표지판에서 E\n숲의 전진 기지로 이동 · 후미는 뒤따라 합류합니다"
 	if expedition.stage == Expedition.Stage.CAMP:
 		return "출발 게시판에서 E · 맡을 일 고르기\n원정대 %d명이 출발을 기다립니다" % caravan.people
 	if board.chosen.is_empty():
@@ -431,3 +456,65 @@ func objective() -> String:
 
 func status() -> String:
 	return "%d명 · 짐노새 %d · 짐소 %d · 마차 %d · 식량 %d" % [caravan.people, caravan.mules, caravan.oxen, caravan.wagons, caravan.food]
+
+## Scene-independent march checkpoint. Dead enemies and lit spots are retained so
+## reloading never charges the NPC guard loss twice for the same completed work.
+func to_data() -> Dictionary:
+	var tasks := {}
+	for role in MarchPlan.ROLES:
+		var task: Dictionary = active[role]
+		var health := []
+		for foe in task.get("enemies", []):
+			health.append(foe.health if is_instance_valid(foe) and foe.state != "dead" else 0.0)
+		var lit := []
+		for spot in task.get("spots", []): lit.append(spot.lit)
+		tasks[role] = {"health": health, "lit": lit, "npc_time": task.get("npc_time", 0.0)}
+	var raid_health := []
+	for foe in raiders: raid_health.append(foe.health if is_instance_valid(foe) and foe.state != "dead" else 0.0)
+	return {"board_stage": board.stage, "chosen": board.chosen, "unlocked": board.unlocked,
+		"leg": plan.leg, "stretch": plan.stretch, "chief": plan.chief, "progress": plan.progress.duplicate(),
+		"advancing": advancing, "crossing_ready": crossing_ready, "tasks": tasks, "raiders": raid_health}
+
+func restore_data(data: Dictionary) -> void:
+	_clear_posts()
+	plan.leg = clampi(int(data.get("leg", 0)), 0, MarchPlan.LEGS.size() - 1)
+	plan.stretch = clampi(int(data.get("stretch", 0)), 0, MarchPlan.LEGS[plan.leg].stretches.size() - 1)
+	plan.chief = bool(data.get("chief", false))
+	var progress_data: Dictionary = data.get("progress", {}) if data.get("progress", {}) is Dictionary else {}
+	for role in MarchPlan.ROLES: plan.progress[role] = clampi(int(progress_data.get(role, 0)), 0, plan.steps(role).size())
+	board.stage = clampi(int(data.get("board_stage", 0)), 0, 3)
+	board.unlocked.clear()
+	for id in data.get("unlocked", []):
+		if id is String and QuestBoard.QUESTS.has(id): board.unlocked.append(id)
+	var chosen: String = str(data.get("chosen", ""))
+	board.chosen = chosen if chosen in board.offers() else ""
+	crossing_ready = bool(data.get("crossing_ready", false))
+	advancing = bool(data.get("advancing", false)) and plan.stretch_done()
+	if region == RegionLayout.MEADOW and expedition.stage >= Expedition.Stage.BASE: return
+	if expedition.stage == Expedition.Stage.MARCH and not crossing_ready and not board.chosen.is_empty():
+		_open_steps()
+		var tasks: Dictionary = data.get("tasks", {}) if data.get("tasks", {}) is Dictionary else {}
+		for role in MarchPlan.ROLES:
+			if active[role].is_empty(): continue
+			var task: Dictionary = tasks.get(role, {}) if tasks.get(role, {}) is Dictionary else {}
+			active[role]["npc_time"] = clampf(float(task.get("npc_time", 0)), 0, GUARD_DELAY)
+			var health: Array = task.get("health", []) if task.get("health", []) is Array else []
+			for i in mini(health.size(), active[role].get("enemies", []).size()):
+				var foe: RuinGuardian = active[role].enemies[i]
+				if float(health[i]) <= 0: foe.take_damage(10000, Vector3.ZERO)
+				else: foe.health = clampf(float(health[i]), 1, foe.max_health)
+			var lit: Array = task.get("lit", []) if task.get("lit", []) is Array else []
+			for i in mini(lit.size(), active[role].get("spots", []).size()):
+				if lit[i]: _light_spot(active[role].spots[i])
+	elif expedition.stage == Expedition.Stage.BASE and not board.chosen.is_empty():
+		var health: Array = data.get("raiders", []) if data.get("raiders", []) is Array else []
+		for i in health.size():
+			if i >= RAIDER_SPOTS.size(): break
+			if float(health[i]) > 0:
+				var foe := _spawn_guardian(RAIDER_SPOTS[i], "습격자", 96)
+				foe.health = clampf(float(health[i]), 1, 96)
+				raiders.append(foe)
+	elif expedition.stage in [Expedition.Stage.CAMP, Expedition.Stage.MARCH, Expedition.Stage.BASE] and not crossing_ready:
+		_spawn_posts((BASE_CENTER + Vector3(0, 0, 7.5)) if region == RegionLayout.FOREST else caravan.front() + Vector3(0, 0, -2.5))
+	elif expedition.stage == Expedition.Stage.BASE and board.chosen.is_empty():
+		_spawn_posts(BASE_CENTER + Vector3(0, 0, 7.5))

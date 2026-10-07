@@ -125,7 +125,9 @@ func begin_attack() -> void:
 	state = "windup"
 	timer = windup_time
 	marker_center = _victim().global_position
-	marker_center.y = 0.10
+	var ground_ray := PhysicsRayQueryParameters3D.create(marker_center + Vector3.UP * 2, marker_center - Vector3.UP * 5, 1)
+	var ground := get_world_3d().direct_space_state.intersect_ray(ground_ray)
+	marker_center.y = float(ground.position.y) + 0.10 if not ground.is_empty() else global_position.y + 0.10
 	marker = Node3D.new()
 	get_parent().add_child(marker)
 	marker.global_position = marker_center

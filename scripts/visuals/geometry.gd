@@ -99,6 +99,7 @@ static func instances(parent: Node3D, resource: Mesh, transforms: Array[Transfor
 	item.multimesh = multimesh
 	var tint := material(Color.WHITE)
 	tint.vertex_color_use_as_albedo = true
+	tint.vertex_color_is_srgb = true
 	item.material_override = tint
 	parent.add_child(item)
 	return item

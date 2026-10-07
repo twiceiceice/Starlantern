@@ -39,8 +39,17 @@ Font is bundled for Korean UI and is not downloaded at runtime.
 
 Character direction reference
 art/references/character-directions.png is an AI-generated concept comparison
-created for this project. Direction C is selected. It is excluded from the game build.
+created for this project. Its old direction C was superseded on 2026-10-07 by
+art/references/mature-rpg-2026-10-07/a-stylized-adventure.png. These AI concept
+references are excluded from the game build and are not actual game models.
 
-All current geometry, character stand-ins, UI layout and attack effects are
-procedurally authored for this project. No external character model, texture pack,
+The expedition_adult.glb, expedition_axe.glb and carpenter_hammer.glb meshes,
+skin and animation clips are originally authored in
+art/source/characters/build_adventurer.py. They use no downloaded source model.
+The environment profiles and surface shaders are also authored for this project.
+CampArt's workshop, kitchen, supply cart, wagon hardware and cargo, animal packs,
+and the texture-free camp fire shader are original procedural assets in
+scripts/visuals/camp_art.gd and assets/shaders/camp_fire.gdshader.
+All current geometry, UI layout and attack effects are authored for this project.
+No external character model, texture pack,
 music or game franchise assets are included.

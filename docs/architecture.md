@@ -14,7 +14,7 @@ main.tscn → app/game.gd
              ├─ Expedition (진행·보상, RefCounted)
              ├─ LanternNetwork (등불 빛·기름, RefCounted)
              ├─ GameWorld (일시 정지되는 게임 장면)
-             │    ├─ expedition_valley.tscn (물리 지형·길찾기)
+             │    ├─ windmeadow.tscn 또는 forest_base.tscn (활성 지역 하나)
              │    ├─ ExpeditionPlayer
              │    ├─ FollowCamera → SpringArm3D → Camera3D
              │    ├─ RuinGuardian × 3
@@ -42,13 +42,13 @@ CharacterView는 현재 임시 메시를 만들고 걷기·공격·운반 포즈
 
 ### 행군과 기지 (app/march_director.gd)
 
-- 지도는 남쪽 출발 야영지(z 150) → 이끼 숲길(구간 1) → 바람 고갯길(구간 2) → 전진 기지 터(z 16) → 유적 순서입니다.
+- 바람결 초원은 출발 야영지(z 150) → 초원길(구간 1) → 도하장(구간 2)입니다. 강 건너 E로 숲 맵의 기지(z 16) → 유적으로 이어집니다.
 - 단계마다 QuestBoard가 두 퀘스트를 제시하고 플레이어는 하나만 맡습니다. 퀘스트의 역할(토벌·등불지기·운반·방어)이
   그 단계에서 플레이어가 할 일입니다.
 - 행군 콘텐츠는 game/march_plan.gd의 데이터입니다. 구간 → 지점(stretch, 경로 거리 end) → 역할별 연퀘 단계.
   단계 종류는 kill(파수꾼), light(등불 자리), visit(표시 지점 방문)입니다. 두 역할의 단계가 모두 끝나야
   행렬이 지점까지 전진하고, 도착한 뒤에야 다음 지점의 단계가 열립니다. 분량은 이 표에 지점과 단계를 더해 늘립니다.
-  light 단계의 등불 자리는 각 지점까지 길이 끊김 없이 밝도록 배치해야 합니다(반경 10m).
+  light 단계의 등불 자리는 각 지점까지 길이 끊김 없이 밝도록 배치해야 합니다(반경 19m).
 - 맡지 않은 역할의 단계는 NPC 조가 처리합니다. 등불꾼은 6초 뒤 등불을 세우고, 정찰대는 7초 뒤 조사를 마치며,
   경비대는 8초마다 파수꾼 하나를 제거하고 3명을 잃습니다. 기지 습격도 경비대가 같은 방식으로 막습니다.
 - 연속 퀘스트: 퀘스트의 next가 다음 단계에서 같은 역할의 퀘스트를 대체합니다(구간 1 토벌 → 우두머리 추적).
@@ -59,6 +59,7 @@ CharacterView는 현재 임시 메시를 만들고 걷기·공격·운반 포즈
   차례가 오지 않은 구성원은 야영지 자리에서 기다리다 마지막 10m 동안 길로 걸어 나옵니다. 행렬이 멈춰 있으면 변환을 다시 쓰지 않습니다. 식량은 (사람 + 노새×2)/600 per second로 줄고, 바닥나면 3초마다 1명이 이탈합니다.
 - 기지 건설은 초당 1.25%, 운반한 상자 하나당 +10%이며 습격자가 남아 있으면 멈춥니다. 완성 시 캠프·리스폰·인부의 집이 기지로 옮겨집니다.
 - 기지 건물의 자리는 world_factory가 미리 길찾기 장애물로 비워 둡니다. 저장된 NavMesh는 런타임 건물을 따라가지 않습니다.
+- CampArt의 작업소·취사장·화덕·짐은 출발 야영지와 기지 건설이 공유합니다. collider_specs의 물리 상자에서 지상 장애물 범위를 만들고, region_world_factory가 건설 전부터 해당 자리를 예약합니다. 지붕은 카메라 충돌에만 사용하고 바닥 경로에서는 제외합니다. 새 마차 장식·적재물은 기존 행렬처럼 MultiMesh이며 개별 NPC AI를 추가하지 않습니다.
 
 ### 유적
 
@@ -75,7 +76,7 @@ CharacterView는 현재 임시 메시를 만들고 걷기·공격·운반 포즈
 - 첫 원정의 인부 둘은 무적 비전투 인력입니다. 진로 의뢰의 학자·호송 수레·보급품은 별도 ExpeditionEscort이며 피해·호위 실패를 처리합니다.
 
 길찾기는 NavigationRegion3D와 NavigationAgent3D를 사용합니다.
-현재 저장된 NavigationMesh는 평지에 장애물 주변을 제외한 셀들을 연결한 형태입니다.
+저장된 NavigationMesh는 RegionLayout의 높이를 샘플링한 셀로 구성하며, 장애물·강물·급경사를 제외합니다. 다리에는 통행 가능한 중앙 통로를 연결합니다.
 오브젝트 회피 및 다층 경사로가 필요한 실제 던전에서는 Godot의 메시 베이크로 바꿉니다.
 NavMesh는 에디터에서 볼 수 있으며 동적인 건축 변경을 자동으로 따라가지 않습니다.
 
@@ -91,8 +92,8 @@ CombatTraining은 장비 슬롯·분야별 숙련을 보유합니다. CombatArts
 적을 공격하면 호위 대상에서 플레이어 쪽으로 5초간 주의를 돌립니다. 수호 결계는 플레이어와 호위 대상의 실제 피해 배율을 바꿉니다.
 CharacterView의 set_magic_focus가 무기와 촉매 표시를 바꾸며 전투 판정은 메시 이름을 참조하지 않습니다.
 
-ExpeditionSave는 버전 1 JSON을 임시 파일로 작성한 뒤 교체합니다. 첫 공통 원정 보고 후에만 기록하며,
-game.gd가 시작 시 전진 기지와 완료한 공통 원정을 복원합니다. 미완료 의뢰의 장면 객체는 저장하지 않고 기지에서 다시 수락합니다.
+ExpeditionSave는 버전 2 JSON을 임시 파일로 작성한 뒤 교체하며 버전 1도 읽습니다. 공통 원정 중간부터 저장합니다.
+game.gd는 현재 지역·행군 단계·각 역할의 적/등불 처리·건설·인부 작업·별도 지역의 등불을 복원합니다. 미완료 의뢰의 장면 객체는 저장하지 않고 기지에서 다시 수락합니다.
 진로별 승급, 장비, 숙련, 보상, 원정대 인원·식량을 보존합니다. 새 원정은 UI에서 재확인하고 이전 파일을 .previous로 보관합니다.
 tests/career_tests.gd는 별도 파일로 저장을 검사하고, 장면 검사와 렌더 도구는 save_enabled=false로 실제 사용자 저장을 건드리지 않습니다.
 
@@ -116,3 +117,16 @@ tests/run_tests.gd는 입력 방향·공격 범위·진행 장부에 이어 실�
 참고: [Godot 명령행](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html),
 [3D 길찾기](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_introduction_3d.html),
 [애니메이션](https://docs.godotengine.org/en/stable/tutorials/animation/animation_tree.html).
+
+## 두 맵의 생명주기
+
+RegionLayout은 지역 경계, 지형 높이, 굽은 경로와 지역 이름을 공유합니다. region_world_factory.gd가 지형·물리·NavMesh를 함께 생성합니다.
+tools/build_world.gd는 실제 렌더러로 windmeadow.tscn과 forest_base.tscn을 저장합니다. 이전 expedition_valley.tscn은 보존합니다.
+장면을 수동 편집했다면 재생성 전 생성 코드와 합쳐야 합니다. 지형은 2m 격자이며 길찾기는 초원 2m / 숲 1m 격자입니다.
+
+Game은 원정 장부·Caravan·플레이어·훈련 상태를 유지하고 지역 지형·내비게이션·MarchDirector·지역 적을 교체합니다.
+강을 건너면 crossing_ready에서 E를 기다리고, 실제 전환 시 MARCH → BASE가 됩니다. 화면 전환 동안 일시 정지하므로 식량을 소모하지 않습니다.
+두 지역의 등불 네트워크를 분리하여 같은 좌표의 다른 지역을 실수로 밝히지 않습니다. 기지 방문 중 되돌아가면 건설과 인부 시뮬레이션을 멈춥니다.
+돌아간 초원에서 저장해도 숲의 기지 체크포인트를 보존합니다. 진행 중 진로 의뢰, 짐 운반, 공격·회피, 근처 적이 있을 때는 이동하지 않습니다.
+Caravan은 누적 경로 길이의 이진 탐색으로 위치를 찾고 각 구성원의 위치에서 방향을 구합니다. 정착한 군중은 중앙 길을 비운 여섯 작업조로 표시합니다.
+MeadowHerd는 배경용 풀 뜯기 연출이며 전투·사냥 AI가 아닙니다. 건설 부지는 공간만 예약하며 자유 건축과 거래는 후속 작업입니다.

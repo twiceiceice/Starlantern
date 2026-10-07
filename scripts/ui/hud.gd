@@ -41,6 +41,9 @@ var journal_record: Label
 var journal_reward: Label
 var journal_close_button: Button
 var notice_time := 0.0
+var region_label: Label
+var travel_veil: ColorRect
+var travel_label: Label
 
 func _ready() -> void:
 	root = Control.new()
@@ -54,6 +57,8 @@ func _ready() -> void:
 	var heading := _panel(root, Vector2(28, 25), Vector2(310, 86))
 	_label(heading, "S T A R L A N T E R N", Vector2(20, 10), Vector2(270, 20), 12, GOLD)
 	_label(heading, ExpeditionCampaign.TITLE, Vector2(20, 31), Vector2(265, 37), 27, PAPER)
+	var region_chip := _panel(root, Vector2(28, 119), Vector2(310, 36))
+	region_label = _label(region_chip, "", Vector2(15, 5), Vector2(280, 27), 15, GOLD)
 	var quest := _panel(root, Vector2(-445, 25), Vector2(417, 214), Vector2(1, 0))
 	title_label = _label(quest, "", Vector2(20, 14), Vector2(372, 30), 20, GOLD)
 	objective_label = _label(quest, "", Vector2(20, 51), Vector2(372, 105), 17, PAPER)
@@ -100,6 +105,23 @@ func _ready() -> void:
 	growth = GrowthPanel.new()
 	growth.painter = self
 	root.add_child(growth)
+	travel_veil = ColorRect.new()
+	travel_veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	travel_veil.color = Color("172d2b")
+	travel_veil.mouse_filter = Control.MOUSE_FILTER_STOP
+	travel_veil.visible = false
+	root.add_child(travel_veil)
+	travel_label = _label(travel_veil, "", Vector2(-400, -45), Vector2(800, 90), 28, PAPER, Vector2(0.5, 0.5))
+	travel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+func fade_travel(text: String, out: bool) -> void:
+	travel_label.text = text
+	travel_veil.visible = true
+	travel_veil.modulate.a = 0.0 if out else 1.0
+	var tween := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.tween_property(travel_veil, "modulate:a", 1.0 if out else 0.0, 0.28)
+	await tween.finished
+	if not out: travel_veil.visible = false
 
 func _build_menu() -> void:
 	menu = Control.new()

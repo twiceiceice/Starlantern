@@ -6,6 +6,7 @@ extends Node3D
 const RING := Color(1.0, 0.86, 0.55, 0.55)
 var light: LanternNetwork
 var drawn := 0
+var show_anchor_rings := true
 var forward: Node3D
 var forward_ring: MeshInstance3D
 var forward_glow: OmniLight3D
@@ -33,6 +34,7 @@ func _ready() -> void:
 	_draw_new_anchors()
 
 func _draw_new_anchors() -> void:
+	if not show_anchor_rings: return
 	while drawn < light.anchors.size():
 		var anchor: Dictionary = light.anchors[drawn]
 		var marker := Node3D.new()

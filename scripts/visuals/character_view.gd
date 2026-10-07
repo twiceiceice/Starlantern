@@ -1,110 +1,144 @@
 class_name CharacterView
 extends Node3D
-## Replaceable, procedural stand-in. Gameplay only calls the public pose methods.
+## Presentation boundary: actors supply motion/action time; the shared GLB owns poses.
+## Original mesh and clips are authored in art/source/characters/build_adventurer.py.
+
+const MODEL = preload("res://assets/models/characters/expedition_adult.glb")
+const AXE = preload("res://assets/models/props/expedition_axe.glb")
+const HAMMER = preload("res://assets/models/props/carpenter_hammer.glb")
+const LOOPS := ["Idle", "Walk", "Run", "CarryIdle", "CarryWalk", "WorkHammer"]
 
 var body: Node3D
-var arm_left: Node3D
-var arm_right: Node3D
-var leg_left: Node3D
-var leg_right: Node3D
+var skeleton: Skeleton3D
+var animator: AnimationPlayer
 var tool: Node3D
 var cargo: Node3D
 var focus: Node3D
-var phase := 0.0
-var coat := Color("477794")
+var coat := Color("426475")
 var occupation := "hero"
+var clip := ""
+var magic_focus := false
+var action_clock := 0.0
+var previous_action := ""
+var hands: CharacterHands
+var feet: CharacterFeet
 
 func _ready() -> void:
-	body = Node3D.new()
+	body = MODEL.instantiate()
 	add_child(body)
-	var skin := Color("ecc29a")
-	var hair := Color("463932")
-	var leather := Color("755139")
-	Geometry.capsule(body, Vector3(0, 0.98, 0), 0.34, 0.85, coat)
-	Geometry.cylinder(body, Vector3(0, 0.66, 0), 0.37, 0.28, coat.darkened(0.1), 0.32)
-	Geometry.sphere(body, Vector3(0, 1.66, 0.025), Vector3(0.66, 0.69, 0.59), skin)
-	Geometry.sphere(body, Vector3(0, 1.89, -0.025), Vector3(0.72, 0.37, 0.65), hair)
-	for offset: Vector3 in [Vector3(-0.23, 1.9, 0.22), Vector3(0.06, 1.98, 0.13), Vector3(0.28, 1.88, 0.12)]:
-		Geometry.sphere(body, offset, Vector3(0.29, 0.25, 0.24), hair)
-	for x: float in [-0.13, 0.13]:
-		Geometry.sphere(body, Vector3(x, 1.70, 0.298), Vector3(0.055, 0.078, 0.035), Color("293534"))
-		Geometry.sphere(body, Vector3(x * 1.65, 1.6, 0.258), Vector3(0.09, 0.035, 0.022), Color("d9937d"))
-	Geometry.sphere(body, Vector3(0, 1.61, 0.316), Vector3(0.1, 0.1, 0.085), skin)
-	Geometry.capsule(body, Vector3(0, 1.35, 0), 0.22, 0.27, Color("e8bc62"))
-	Geometry.box(body, Vector3(0.13, 1.13, 0.34), Vector3(0.14, 0.37, 0.065), Color("edc675")).rotation.z = -0.15
-	Geometry.sphere(body, Vector3(0, 0.98, -0.36), Vector3(0.56, 0.69, 0.3), leather)
-	Geometry.box(body, Vector3(0, 1.11, -0.53), Vector3(0.41, 0.075, 0.03), Color("d1ad71"))
-	arm_left = _limb(body, Vector3(-0.40, 1.22, 0), false, coat, skin)
-	arm_right = _limb(body, Vector3(0.40, 1.22, 0), false, coat, skin)
-	leg_left = _limb(body, Vector3(-0.18, 0.59, 0), true, Color("404f54"), leather)
-	leg_right = _limb(body, Vector3(0.18, 0.59, 0), true, Color("404f54"), leather)
-	tool = Node3D.new()
-	tool.position = Vector3(0, -0.39, 0.12)
-	arm_right.add_child(tool)
-	Geometry.cylinder(tool, Vector3(0, 0.02, 0.12), 0.035, 0.86, leather).rotation.x = 0.3
-	if occupation == "hero":
-		Geometry.sphere(tool, Vector3(0.10, 0.43, 0), Vector3(0.51, 0.30, 0.12), Color("a2b8b5"))
-		Geometry.box(tool, Vector3(0.28, 0.43, 0), Vector3(0.09, 0.28, 0.13), Color("e0e8d9"))
-	elif occupation == "carpenter":
-		Geometry.box(tool, Vector3(0, 0.38, 0), Vector3(0.38, 0.2, 0.22), Color("7c8e8c"))
-	else:
-		tool.visible = false
+	skeleton = body.find_children("*", "Skeleton3D", true, false)[0]
+	hands = CharacterHands.new(skeleton)
+	feet = CharacterFeet.new(skeleton)
+	animator = body.find_children("*", "AnimationPlayer", true, false)[0]
+	animator.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	for name in LOOPS:
+		animator.get_animation(name).loop_mode = Animation.LOOP_LINEAR
+	for node in body.find_children("*", "MeshInstance3D", true, false):
+		if String(node.name).begins_with("Face"):
+			node.visible = String(node.name) == "Face" + occupation.capitalize()
+		if node.name == "HeroArmor":
+			node.visible = occupation == "hero"
+		if node.name == "WorkApron":
+			node.visible = occupation == "carpenter"
+		if node.name == "TravelPack":
+			node.visible = occupation != "carpenter"
+		for surface in node.mesh.get_surface_count():
+			var original: Material = node.mesh.surface_get_material(surface)
+			if original.resource_name in ["Coat", "CoatShade", "Linen", "Trousers", "Leather", "LeatherEdge"]:
+				var tint: Color = original.albedo_color
+				if original.resource_name == "Coat": tint = coat
+				if original.resource_name == "CoatShade": tint = coat.darkened(0.28)
+				var fabric := original.resource_name in ["Coat", "CoatShade", "Linen", "Trousers"]
+				var surface_material := ExpeditionArt.material("canvas" if fabric else "leather", tint).duplicate()
+				node.set_surface_override_material(surface, surface_material)
+	var grip := _attachment("grip_r")
+	tool = AXE.instantiate() if occupation == "hero" else HAMMER.instantiate()
+	grip.add_child(tool)
+	tool.visible = occupation in ["hero", "carpenter"]
+	# Tilt the carried axe away from the boots so the head clears the ground
+	# while running with bent knees. Combat supplies its own world-space path.
+	tool.rotation = Vector3(-0.65 if occupation == "hero" else 0.0, PI * 0.5, PI)
 	cargo = Node3D.new()
-	cargo.position = Vector3(0, 0.85, 0.55)
-	body.add_child(cargo)
-	Geometry.box(cargo, Vector3.ZERO, Vector3(0.67, 0.48, 0.45), Color("ac7b48"))
-	Geometry.box(cargo, Vector3(0, 0.02, 0.24), Vector3(0.06, 0.5, 0.03), Color("e8c594"))
+	cargo.position = Vector3(0, -0.30, 0.46)
+	_attachment("chest").add_child(cargo)
+	Geometry.box(cargo, Vector3.ZERO, Vector3(0.53, 0.36, 0.35), Color("765d42"))
+	for x in [-0.20, 0.20]:
+		Geometry.box(cargo, Vector3(x, 0, 0.181), Vector3(0.04, 0.38, 0.018), Color("b09062"))
 	cargo.visible = false
 	if occupation == "hero":
 		focus = Node3D.new()
-		focus.position = tool.position
-		arm_right.add_child(focus)
-		Geometry.cylinder(focus, Vector3(0, 0.2, 0.1), 0.04, 1.15, Color("6c657f"))
-		var gem := Geometry.sphere(focus, Vector3(0, 0.82, 0.1), Vector3.ONE * 0.23, Color("96d9e6"))
-		gem.material_override = Geometry.material(Color("96d9e6"), 0.8)
+		grip.add_child(focus)
+		Geometry.cylinder(focus, Vector3(0, 0.23, 0), 0.022, 1.2, Color("524940"))
+		var gem := Geometry.sphere(focus, Vector3(0, 0.87, 0), Vector3(0.12, 0.22, 0.12), Color("9fbcc8"))
+		gem.material_override = Geometry.material(Color("9fbcc8"), 0.6)
 		focus.visible = false
+	_play("Idle")
+	animator.advance(0)
+
+func _attachment(bone: String) -> BoneAttachment3D:
+	var attachment := BoneAttachment3D.new()
+	attachment.name = bone + "_attachment"
+	skeleton.add_child(attachment)
+	attachment.bone_name = bone
+	return attachment
 
 func set_magic_focus(enabled: bool) -> void:
+	magic_focus = enabled
 	if is_instance_valid(focus):
-		focus.visible = enabled
-		tool.visible = not enabled
+		focus.visible = enabled and not cargo.visible
+		tool.visible = not enabled and not cargo.visible
 
-func _limb(parent: Node3D, origin: Vector3, leg: bool, cloth: Color, end: Color) -> Node3D:
-	var pivot := Node3D.new()
-	pivot.position = origin
-	parent.add_child(pivot)
-	Geometry.capsule(pivot, Vector3(0, -0.18, 0), 0.105 if leg else 0.11, 0.39, cloth)
-	Geometry.sphere(pivot, Vector3(0, -0.40, 0.055), Vector3(0.24, 0.25, 0.36) if leg else Vector3(0.22, 0.24, 0.22), end)
-	return pivot
+func _play(next: String, blend: float = 0.12) -> void:
+	if clip == next:
+		return
+	clip = next
+	animator.play(next, blend)
 
 func animate(delta: float, speed: float, grounded: bool, action: String = "", progress: float = 0.0, carrying: bool = false) -> void:
-	phase += delta * (5 + speed * 1.8)
-	var stride := clampf(speed / 7.0, 0, 1)
-	var wave := sin(phase) * stride * 0.8
-	body.position.y = absf(sin(phase)) * stride * 0.055 + sin(phase * 0.4) * 0.01
-	body.rotation = Vector3.ZERO
-	leg_left.rotation.x = wave if grounded else -0.45
-	leg_right.rotation.x = -wave if grounded else 0.3
-	arm_left.rotation = Vector3(-wave * 0.6, 0, 0.07)
-	arm_right.rotation = Vector3(wave * 0.6 - 0.15, 0, -0.07)
+	if not is_instance_valid(animator):
+		return
+	# Contact corrections are rebuilt each frame, never accumulated into clips.
+	skeleton.reset_bone_poses()
+	if action != previous_action:
+		action_clock = 0
+		previous_action = action
+	action_clock += delta
 	cargo.visible = carrying
-	if carrying:
-		arm_left.rotation.x = -0.9
-		arm_right.rotation.x = -0.9
-	if action == "slash":
-		var swing := sin(progress * PI)
-		body.rotation.y = lerpf(-0.6, 0.85, progress)
-		arm_right.rotation = Vector3(-1.2 * swing, -1.4 + progress * 2.8, -0.65 * swing)
-	elif action == "slam":
-		var raise := sin(minf(progress / 0.52, 1.0) * PI * 0.5)
-		arm_right.rotation.x = -2.8 * raise if progress < 0.52 else lerpf(-2.8, -0.25, minf((progress - 0.52) * 5.0, 1.0))
-		arm_left.rotation.x = arm_right.rotation.x * 0.8
-		body.rotation.x = -0.2 if progress < 0.52 else 0.3 * sin(progress * PI)
-	elif action == "dodge":
-		body.rotation.x = -0.65
-		body.position.y -= 0.20
-	elif action in ["bolt", "nova", "familiar"]:
-		arm_right.rotation.x = -1.5 * sin(progress * PI)
-		arm_left.rotation.x = -1.1 * sin(progress * PI)
+	tool.visible = not carrying and not magic_focus and occupation in ["hero", "carpenter"]
+	if is_instance_valid(focus):
+		focus.visible = magic_focus and not carrying
+	var next := "Idle"
+	var seek_action := false
+	if action == "dodge":
+		next = "Dodge"
+	elif action in ["slash", "slam", "bolt", "nova", "familiar"]:
+		next = "Slash" if action == "slash" else ("Slam" if action == "slam" else "Cast")
+		seek_action = true
 	elif action == "work":
-		arm_right.rotation.x = -0.5 - absf(sin(phase)) * 1.5
+		next = "WorkHammer"
+	elif not grounded:
+		next = "Jump"
+	elif carrying:
+		next = "CarryWalk" if speed > 0.15 else "CarryIdle"
+	elif speed > 0.15:
+		next = "Run" if speed > 5.5 else "Walk"
+	_play(next, 0.055 if seek_action else 0.12)
+	if seek_action:
+		# Game wind-up and visual contact remain synchronized, including haste/cancel.
+		animator.advance(delta)
+		animator.seek(clampf(progress, 0, 0.999) * animator.current_animation_length, true)
+	elif action == "dodge":
+		animator.advance(delta)
+		animator.seek(minf(action_clock, animator.current_animation_length - 0.001), true)
+	else:
+		var rate := clampf(speed / (7.4 if next == "Run" else 4.6), 0.5, 1.5) if next in ["Walk", "Run", "CarryWalk"] else 1.0
+		animator.advance(delta * rate)
+		if feet.active and next in ["Walk", "Run", "CarryWalk"]:
+			animator.seek(fposmod(feet.phase - 0.25, 1) * animator.current_animation_length, true)
+	feet.apply(delta, speed, grounded, action)
+	hands.strength = 0
+	hands.grip_error = 0
+	if carrying:
+		hands.apply_cargo(cargo.transform)
+	elif occupation == "hero" and not magic_focus and action in ["slash", "slam"]:
+		hands.apply_axe(action, clampf(progress, 0, 1), tool.basis)

@@ -11,6 +11,10 @@ func _run() -> void:
 	root.add_child(game)
 	current_scene = game
 	var mode := OS.get_cmdline_user_args()[0] if not OS.get_cmdline_user_args().is_empty() else "camp"
+	if mode in ["record", "discovery", "complete", "combat"]:
+		game.expedition.stage = Expedition.Stage.BASE
+		game.director_snapshot = {"board_stage":2,"crossing_ready":true}
+		game.change_region(RegionLayout.FOREST, false)
 	if mode != "menu":
 		game.resume()
 		if mode == "camp":
