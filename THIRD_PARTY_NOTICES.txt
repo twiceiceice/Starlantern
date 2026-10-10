@@ -43,6 +43,13 @@ created for this project. Its old direction C was superseded on 2026-10-07 by
 art/references/mature-rpg-2026-10-07/a-stylized-adventure.png. These AI concept
 references are excluded from the game build and are not actual game models.
 
+art/references/character-directions-2026-10-10/ contains six original concept
+images generated for this project with OpenAI's built-in image_gen tool.
+The directory preserves generation prompts and a design handoff index.
+The youthful Western animated-adventure human pair is the latest preferred
+character concept; its proportion studies are not a selected or implemented
+3D model. These reference images are also excluded from the game build.
+
 The expedition_adult.glb, expedition_axe.glb and carpenter_hammer.glb meshes,
 skin and animation clips are originally authored in
 art/source/characters/build_adventurer.py. They use no downloaded source model.

@@ -1,0 +1,27 @@
+Generated with the built-in image_gen tool on 2026-10-10.
+Concept art, not an in-game render.
+Edit target: four-directions.png
+Output: four-directions-comic.png
+
+FINAL PROMPT
+
+Use case: style-transfer
+Asset type: a revised comic/manga character-design comparison sheet for an original fantasy expedition RPG.
+
+Input image role: the supplied four-column A/B/C/D board is the EDIT TARGET and character identity reference. Preserve its four different character concepts and the A/B/C/D order, but REDRAW the board in a markedly more CARTOON / COMIC CHARACTER style. The user thinks the cast looks generic and wants much more personality. This must visibly differ from the realistic, weathered concept painting in the reference.
+
+Style transformation: expressive original adventure-comic / manga character design in FULL COLOR. Confident slightly varied black ink contour lines, clean interior lines, simple flat color blocks with just one or two cel-shading tones, lively graphic shapes, tiny optional ink hatching only. Absolutely remove realistic texture painting, metal scratches, fur strand rendering and cinematic 3D shading. Make each character feel capable of starring in an animated fantasy adventure with humor, relationships and sharp combat. Adult adventurers, not infants, chibi, bobblehead toys, or school anime. Moderately exaggerated proportions around five to six heads tall for A and B; exaggerated large hands/boots, large readable brows and mouths, bold hair/ear shapes. Let the cast have warmth, expressive personality and asymmetrical poses.
+
+Composition: landscape page, four equal spacious columns labeled ONLY A, B, C, D. One large head-to-toe character per column plus TWO small expressive head doodles near the upper corner of its column (different emotions, e.g. amused / annoyed, confident / startled). All feet, hands and weapons fully inside frame. Use a clean off-white paper background, simple pale ground shadows, NO painted landscape and no complex decorative border. Keep the page legible at a glance. No other text, no watermarks. Main characters are the focus.
+
+A — FRONTIER HUMAN: retain the weathered adult human veteran identity, short swept-back dark hair with a distinct silver forelock, scarred eyebrow, asymmetric steel shoulder plate, blue travel coat and practical axe. Redesign as a strongly characterized comic adventurer: angular face, prominent nose, expressive eyebrows, crooked confident grin, wiry elastic stance with one bent knee. Simplify clothing into a few distinct large shapes and ONE recognizable pack, reduce belts and pouches dramatically. NOT a generic handsome anime hero.
+
+B — BEASTFOLK SCOUT: retain jackal/fox-like elongated muzzle, very tall expressive ears, bushy tail, digitigrade legs, rust-red scarf and field axe. Strong black-and-cream fur color graphic pattern. Lean angular and mischievous, raised eyebrow and knowing sideways smile; ears and tail contribute to the acting. Clearly nonhuman face and feet. Head slightly larger and legs springy; hands gesture playfully rather than merely standing straight. Simplified readable clothing.
+
+C — LIVING LANTERN ARMOR: retain a hollow hooded helmet with a warm golden living flame instead of a flesh head, massive dark iron shoulders, moss-green cape and huge gauntlets, travel straps and axe. Exaggerate into a memorable broad trapezoid silhouette with a small inset head, giant mitten-like articulated gauntlets and short sturdy feet. Friendly stoic body language: slight curious head tilt and one open palm. The internal FLAME SHAPE itself changes to suggest emotion in the two head doodles, without adding a biological human face. Large clean armor planes, just one dent and one patch; no micro-detail or photorealism.
+
+D — BEETLE NOMAD: retain the sapient beetle with rounded olive chitin shell, TWO working arms and FOUR walking legs (six limbs total), small swept horn, ochre scarf and luggage tied on its shell. Make it a personable stout comic expedition craftsperson: broad clear expressive eyes, articulate feelers/brows and a grumbling-but-kind expression, holding a small carpentry axe and pointing as if giving directions. The four walking legs stay clearly visible and anatomically coherent. Simplify the shell to a few big segmented shapes and two canvas saddle bags. Avoid horror, realistic mandibles and tiny intricate insect mechanics.
+
+Color palette: each character gets a distinct clear color identity, A blue, B rusty red/cream, C moss green/golden flame, D olive/ochre. Livelier and cleaner than the reference's muddy gray-browns, without neon saturation. Maintain one cohesive comic world.
+
+Constraints: this is CONCEPT ART, not a screenshot or implemented game model. Keep all four subjects clearly recognizable from the target, their rough roles and props, but decisively transform their shape language, proportions, linework, facial acting, pose and detail level. No existing franchise characters, no text beyond the four letters.

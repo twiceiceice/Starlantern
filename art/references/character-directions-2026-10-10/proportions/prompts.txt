@@ -1,0 +1,56 @@
+Generated with the built-in image_gen tool on 2026-10-10.
+Concept proportion studies only; not in-game models or screenshots.
+Reference / edit target: ../western-youth-duo.png
+
+VARIANT A — 큰 머리 · 약 5등신
+Output: variant-a.png
+FINAL PROMPT
+Use case: identity-preserve / stylized-concept.
+Asset type: a character-proportion variation sheet for the two APPROVED original fantasy expedition characters in the input image.
+Input image role: edit target and strict identity/style reference.
+
+Keep the SAME TWO human older-teen characters, male on the left and female on the right. Preserve their recognizable faces, apparent age, hair, skin colors, costume design and colors, tools and personality. Male: messy chestnut hair, freckles, cheerful eyebrows, teal short jacket over laced cream shirt, brown trousers and boots, canvas backpack and amber lantern. Female: warm medium skin tone, dark bob with short side braid, expressive eyes, ochre jacket, mint scarf, plum trousers and boots, cross-body map satchel, holding a map. Both are capable young adventurers, not babies.
+Preserve the warm original Western 2D animated-adventure style: clean lively ink contours, flat colors, gentle cel shading, clear facial acting, cream background. Do not turn into superhero comics, realistic RPG art, 3D rendering or generic big-eyed Japanese chibi designs.
+
+Layout: clean landscape sheet with ONLY the two full-body characters, no additional heads, poses or characters. Male left, female right; both fit completely inside generous margins, full hair, hands, packs and boots visible. For fair comparison across sheets, use relaxed standing three-quarter poses: both feet on the ground and slightly apart, male smiling with one hand on his pack strap and the other on his waist, female smiling with one hand holding the folded map near her torso and the other resting on her satchel. No rock pedestal. Same visual camera height, soft ground shadows, no scenery. Main pair occupies most of the canvas. Label the sheet only with the specified single letter centered at the top.
+This is a deliberate SHAPE AND PROPORTION redesign, not merely resizing the whole image. Change body ratios as requested below while keeping the approved character identities and the cohesive animation art style.
+No watermarks, no logos, no extra words. Concept art only, not a game screenshot.
+
+Variant A. Text at the top: "A".
+LARGE HEAD, BALANCED ADVENTURER: redesign both at about FIVE HEADS TALL, visibly larger heads than the reference, with about 25–30 percent increased head-to-torso size. Retain reasonably long legs, a slim/average youthful torso, natural-sized hands and practical boots. Slightly rounder cheeks, readable brows and eyes, a stronger distinct hair silhouette. Their broad cheerful facial acting should become easier to read from gameplay distance. Keep the same age and confident demeanor. This is the moderate stylization option, lively animated-adventure protagonists, not toddlers.
+
+
+VARIANT B — 과장된 손발 · 액션형
+Output: variant-b.png
+FINAL PROMPT
+Use case: identity-preserve / stylized-concept.
+Asset type: a character-proportion variation sheet for the two APPROVED original fantasy expedition characters in the input image.
+Input image role: edit target and strict identity/style reference.
+
+Keep the SAME TWO human older-teen characters, male on the left and female on the right. Preserve their recognizable faces, apparent age, hair, skin colors, costume design and colors, tools and personality. Male: messy chestnut hair, freckles, cheerful eyebrows, teal short jacket over laced cream shirt, brown trousers and boots, canvas backpack and amber lantern. Female: warm medium skin tone, dark bob with short side braid, expressive eyes, ochre jacket, mint scarf, plum trousers and boots, cross-body map satchel, holding a map. Both are capable young adventurers, not babies.
+Preserve the warm original Western 2D animated-adventure style: clean lively ink contours, flat colors, gentle cel shading, clear facial acting, cream background. Do not turn into superhero comics, realistic RPG art, 3D rendering or generic big-eyed Japanese chibi designs.
+
+Layout: clean landscape sheet with ONLY the two full-body characters, no additional heads, poses or characters. Male left, female right; both fit completely inside generous margins, full hair, hands, packs and boots visible. For fair comparison across sheets, use relaxed standing three-quarter poses: both feet on the ground and slightly apart, male smiling with one hand on his pack strap and the other on his waist, female smiling with one hand holding the folded map near her torso and the other resting on her satchel. No rock pedestal. Same visual camera height, soft ground shadows, no scenery. Main pair occupies most of the canvas. Label the sheet only with the specified single letter centered at the top.
+This is a deliberate SHAPE AND PROPORTION redesign, not merely resizing the whole image. Change body ratios as requested below while keeping the approved character identities and the cohesive animation art style.
+No watermarks, no logos, no extra words. Concept art only, not a game screenshot.
+
+Variant B. Text at the top: "B".
+ELASTIC ACTION SILHOUETTE: redesign both at around FIVE HEADS TALL with a somewhat bigger head than the reference, but make the distinguishing feature noticeably oversized hands, forearms and sturdy boots — about 40 percent larger than their normal proportion. Slim tapered waists, slightly broader shoulders and strong graphic triangular sleeves, long springy calves, dynamic curves even in the relaxed standing pose. The male has an angular wiry silhouette, the female a compact athletic silhouette. No bulky muscles or square superhero jaws. Hands and boots are expressive animation shapes, not giant armored gauntlets. Keep the original costume and colors, emphasize clear large costume shapes and attitude. The effect should suggest a nimble action-adventure game character with readable gestures.
+
+
+VARIANT C — 짧고 둥근 체형 · 약 3.5등신
+Output: variant-c.png
+FINAL PROMPT
+Use case: identity-preserve / stylized-concept.
+Asset type: a character-proportion variation sheet for the two APPROVED original fantasy expedition characters in the input image.
+Input image role: edit target and strict identity/style reference.
+
+Keep the SAME TWO human older-teen characters, male on the left and female on the right. Preserve their recognizable faces, apparent age, hair, skin colors, costume design and colors, tools and personality. Male: messy chestnut hair, freckles, cheerful eyebrows, teal short jacket over laced cream shirt, brown trousers and boots, canvas backpack and amber lantern. Female: warm medium skin tone, dark bob with short side braid, expressive eyes, ochre jacket, mint scarf, plum trousers and boots, cross-body map satchel, holding a map. Both are capable young adventurers, not babies.
+Preserve the warm original Western 2D animated-adventure style: clean lively ink contours, flat colors, gentle cel shading, clear facial acting, cream background. Do not turn into superhero comics, realistic RPG art, 3D rendering or generic big-eyed Japanese chibi designs.
+
+Layout: clean landscape sheet with ONLY the two full-body characters, no additional heads, poses or characters. Male left, female right; both fit completely inside generous margins, full hair, hands, packs and boots visible. For fair comparison across sheets, use relaxed standing three-quarter poses: both feet on the ground and slightly apart, male smiling with one hand on his pack strap and the other on his waist, female smiling with one hand holding the folded map near her torso and the other resting on her satchel. No rock pedestal. Same visual camera height, soft ground shadows, no scenery. Main pair occupies most of the canvas. Label the sheet only with the specified single letter centered at the top.
+This is a deliberate SHAPE AND PROPORTION redesign, not merely resizing the whole image. Change body ratios as requested below while keeping the approved character identities and the cohesive animation art style.
+No watermarks, no logos, no extra words. Concept art only, not a game screenshot.
+
+Variant C. Text at the top: "C".
+COMPACT ROUND ADVENTURER: redesign both at about THREE AND A HALF HEADS TALL, conspicuously shorter and rounder than the reference and other directions. Very large head, short neck, compact broad torso, short sturdy legs and soft rounded hands/boots. Slightly puffy practical jackets and trousers, round packs and a bouncy bean-shaped body silhouette. They remain the SAME recognizable older-teen adventurers in a cartoon shorthand, with cheeky confident expressions and clear elbows/knees; no baby behavior, baby clothing, pacifier or toddler anatomy. Avoid enormous glittery anime eyes. This is a cozy but capable Western-animation adventure-game look. Simplify small belts and buckles while preserving each identity's key colors, hair, scarf, lantern or map.

@@ -198,6 +198,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\check.ps1
 봉인된 문 너머의 던전 내부와 AI 시안 수준의 최종 모델 품질은 후속 작업입니다.
 캐릭터 원본은 `art/source/characters/build_adventurer.py`이며 Python 3로 다시 생성할 수 있습니다.
 
+2026-10-10에는 젊은 서양 애니메이션풍 남녀 캐릭터와 머리·손발 비율 변형을 추가로 검토했습니다.
+[최신 시안 모음](art/references/character-directions-2026-10-10/README.md)에 이미지·생성 프롬프트와 이어서 할 일을 보관했습니다.
+새 디자인은 시안 단계이며 현재 게임 모델에는 아직 적용하지 않았습니다.
+
 기존 웹 프로젝트 `../starlantern` 및 이전 게임은 별도로 보존했습니다.
 GitHub 원격 저장소는 [twiceiceice/Starlantern](https://github.com/twiceiceice/Starlantern)입니다.
 푸시할 때 GitHub Actions로 검사를 실행합니다. 실행 파일 자동 배포는 아직 연결하지 않았습니다.

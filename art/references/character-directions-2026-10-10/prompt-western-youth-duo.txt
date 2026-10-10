@@ -1,0 +1,21 @@
+Generated with the built-in image_gen tool on 2026-10-10.
+Original youthful Western-animation male/female expedition character concept. Concept art, not an in-game render.
+Output: western-youth-duo.png
+
+FINAL PROMPT
+
+Use case: stylized-concept
+Asset type: original character concept sheet for a fantasy expedition adventure game.
+
+Primary request: Design ONLY TWO HUMAN characters, one male and one female, with the look of a Western animated adventure series for young audiences. They should look younger than the previous adult RPG concepts: older teenagers, approximately 17–19 years old. Friendly, energetic, expressive youthful protagonists, with distinct personalities. Use original designs. The desired direction is warm, appealing Western animation character design, not DC/superhero comic styling.
+
+Composition: a clean landscape character-design sheet split into two spacious halves, the male on the left, the female on the right. Each half has ONE prominent complete full-body three-quarter character pose, feet fully visible, plus two small facial-expression studies of that same character near the upper outer area. Exactly two character identities; the expression studies repeat those identities. Plain pale warm-cream background, subtle flat ground shadows, no scenery, no lettering or logos. The full bodies occupy most of the page and remain easy to read. The expressions should feel spontaneous, not stock poses.
+
+Art direction: confident clean 2D animation linework, rounded and tapered graphic shapes, soft angular accents, simple flat colors with restrained cel shading, expressive eyebrows, large readable but not enormous eyes, soft cheeks and jawlines. Youthful proportions around five-and-a-half to six heads tall, naturally slim/average builds, slightly emphasized hands and boots for appealing animation. Personality comes from clear posing and expressions. Lively and warm rather than brooding. Avoid hyperrealism, painterly texture, ink-heavy graphic-novel grit, exaggerated square jaws, huge chins, bodybuilder muscles, spandex, capes, superhero suits, chibi proportions and anime/manga face conventions.
+
+Male character: a cheerful, slightly impulsive young expedition scout with tousled chestnut-brown hair, soft youthful features, a few freckles and a bright asymmetric grin. Relaxed lean body, energetic stance with one foot on a very low stone and a hand adjusting his pack strap. He wears a simple short teal field jacket over a cream shirt, practical brown trousers, comfortable ankle boots and a small weathered canvas backpack. A little amber expedition lantern and a compact wooden-handled camp tool hang securely on his belt. One bold garment patch and a tied ribbon give him a specific identity; very few straps. Expression studies: confident excitement and embarrassed surprise. No beard, stubble, scars or adult warrior face.
+
+Female character: a curious, quick-witted young expedition mapmaker, with a dark warm-brown bob and a small side braid secured with an ochre tie, warm medium skin tone, soft face and a few freckles, expressive dark eyes and a knowing lively smile. Grounded, slightly forward-leaning pose, one hand holding a folded map while the other points out the route. Simple ochre-orange short jacket, muted plum/indigo practical trousers, sturdy ankle boots, a small cross-body field satchel with a rolled map and pencil. A small mint scarf gives a contrasting accent. Expression studies: thoughtful skepticism and delighted discovery. She must look equally capable and active. Comfortable fully covering expedition clothing, no exposed midriff, cleavage, heels or pin-up pose.
+
+World connection: they belong to a traveling fantasy expedition with campfires, craftspeople, maps and ancient forest ruins. Suggest that world through the lantern, practical packs and small field equipment only. Not school uniforms, modern streetwear, royal costumes or heavily armored fighters.
+Keep equipment and costume detail deliberately simple enough to adapt to stylized 3D game models. Distinct blue/teal color identity for the male, ochre/plum for the female, coherent shared style. Final image should look like a polished animation development sheet for a youthful original adventure cast, not a superhero comic cover or realistic RPG illustration.
