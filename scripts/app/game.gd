@@ -600,6 +600,8 @@ func change_region(id: String, capture_previous: bool = true) -> void:
 	light = region_lights[id]
 	landscape = load(RegionLayout.SCENES[id]).instantiate()
 	gameplay.add_child(landscape)
+	var atmosphere := landscape.get_node_or_null("ForestAtmosphere") as ForestAtmosphere
+	if atmosphere: atmosphere.observer = player
 	region_actors = Node3D.new()
 	gameplay.add_child(region_actors)
 	camp_position = RegionLayout.START if id == RegionLayout.MEADOW else RegionLayout.BASE

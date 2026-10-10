@@ -28,6 +28,7 @@ func build_region(id: String) -> Node3D:
 	else:
 		_base_site()
 		_ruin()
+		_forest_approach()
 		for point: Vector3 in [Vector3(-3.5, 0, 8), Vector3(3.5, 0, 8), Vector3(-4.5, 0, -7), Vector3(4.5, 0, -7)]:
 			_lantern(point)
 		_waypost(RegionLayout.FOREST_GATE, "길드 보급 수레\n출발 야영지로 · E", Color("d9c093"))
@@ -49,6 +50,7 @@ func build_region(id: String) -> Node3D:
 
 func _lighting() -> void:
 	var environment := WorldEnvironment.new()
+	environment.name = "RegionEnvironment"
 	var settings := Environment.new()
 	var sky := Sky.new()
 	var gradient := ProceduralSkyMaterial.new()
@@ -71,6 +73,7 @@ func _lighting() -> void:
 	environment.environment = settings
 	world.add_child(environment)
 	var sun := DirectionalLight3D.new()
+	sun.name = "RegionSun"
 	sun.rotation_degrees = Vector3(-36, -38, 0)
 	sun.light_color = Color("fff4de")
 	sun.light_energy = 0.85
@@ -78,6 +81,11 @@ func _lighting() -> void:
 	sun.directional_shadow_max_distance = 95
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	world.add_child(sun)
+	if region == RegionLayout.FOREST:
+		var atmosphere := Node.new()
+		atmosphere.name = "ForestAtmosphere"
+		atmosphere.set_script(load("res://scripts/visuals/forest_atmosphere.gd"))
+		world.add_child(atmosphere)
 
 func _terrain() -> void:
 	var area := RegionLayout.bounds(region)
@@ -99,7 +107,7 @@ func _terrain() -> void:
 			var dz := RegionLayout.ground_y(region, x, z + 0.1) - RegionLayout.ground_y(region, x, z - 0.1)
 			normals.append(Vector3(-dx, 0.2, -dz).normalized())
 			var patch := (sin(x * 0.14 + sin(z * 0.03)) * cos(z * 0.09) + 1) * 0.5
-			var color := Color("687c49").lerp(Color("929869"), patch) if region == RegionLayout.MEADOW else Color("56684f").lerp(Color("7c8260"), patch)
+			var color := Color("687c49").lerp(Color("929869"), patch) if region == RegionLayout.MEADOW else Color("485c4d").lerp(Color("6b745c"), patch)
 			if region == RegionLayout.MEADOW:
 				color = color.lerp(Color("aa9875"), 1.0 - smoothstep(3.3, 5.8, absf(x - RegionLayout.road_x(z))))
 				if absf(z) < 15: color = color.lerp(Color("969c86"), 1.0 - smoothstep(9, 16, absf(z)))
@@ -108,7 +116,8 @@ func _terrain() -> void:
 			else:
 				var trail := 1.0 - smoothstep(2.5,4.7,absf(x + sin(z*.14)*.45))
 				var clearing := 1.0 - smoothstep(8.5,13.0,Vector2(x,z-BASE_SITE.z).length())
-				color = color.lerp(Color("a08d6c"),maxf(trail,clearing))
+				var trail_tint := Color("a08d6c").lerp(Color("666e60"),1.0-smoothstep(-24,6,z))
+				color = color.lerp(trail_tint,maxf(trail,clearing))
 			for station: Vector3 in stations:
 				var wear := 1.0-smoothstep(2.4,4.4,Vector2(x-station.x,z-station.z).length())
 				color = color.lerp(Color("9a8766"),wear*.85)
@@ -187,16 +196,17 @@ func _waypost(at: Vector3, text: String, tint: Color) -> void:
 
 func _vegetation() -> void:
 	var area := RegionLayout.bounds(region).grow(-5)
-	var count := 72 if region == RegionLayout.MEADOW else 200
+	var count := 72 if region == RegionLayout.MEADOW else 310
 	for i in count:
 		var x := random.randf_range(area.position.x, area.end.x)
 		var z := random.randf_range(area.position.y, area.end.y)
 		if region == RegionLayout.MEADOW:
 			if absf(x - RegionLayout.road_x(z)) < 11 or absf(z) < 20 or Vector2(x, z - 150).length() < 37: continue
 		else:
-			if absf(x) < 13 or (absf(x) < 41 and z > -1): continue
+			if (absf(x) < 13 and z > -35) or (absf(x) < 41 and z > -1): continue
 		_tree(RegionLayout.on_ground(region, Vector3(x, 0, z)), random.randf_range(1.5, 2.6) if region == RegionLayout.MEADOW else random.randf_range(1.6, 3.0))
 	_tree_meshes()
+	if region == RegionLayout.FOREST: ForestArt.understory(world)
 	var tufts: Array[Transform3D] = []
 	var colors: Array[Color] = []
 	var flowers: Array[Transform3D] = []
@@ -274,6 +284,41 @@ func _start_camp() -> void:
 	_banner(START_CAMP+Vector3(-3.6,0,4),Color("465c67"))
 	_banner(START_CAMP+Vector3(3.6,0,4),Color("465c67"))
 
+func _ruin() -> void:
+	RuinArt.build(world)
+	obstacles.append_array(RuinArt.navigation_footprints())
+	for point: Vector3 in [Vector3(-5,0,-25),Vector3(5,0,-26)]: _crystal(point)
+
+func _forest_approach() -> void:
+	# Frame the trail with trunks outside its clear width; all quest points stay inside.
+	for side in [-1,1]:
+		for i in 7:
+			var at := Vector3(side*(10.8 if i < 2 else 13.1+(i%2)*1.6),0,4.0-i*6.8)
+			_tree(RegionLayout.on_ground(region,at),1.9+(i%3)*.23)
+	for row in 2:
+		for col in range(-4,5):
+			var at := Vector3(col*3.6+row*1.4,0,-37.3-row*4.7)
+			_tree(RegionLayout.on_ground(region,at),2.3+float((col+row+12)%4)*.22)
+
+func _crystal(position: Vector3) -> void:
+	RuinArt.crystal_cluster(world,position)
+
+func _lantern(position: Vector3) -> void:
+	var b := CampArt.Sculpt.new()
+	b.beam("wood",Vector3(-.26,0,0),Vector3(-.26,2.36,0),.056,.043)
+	b.beam("iron",Vector3(-.26,2.30,0),Vector3(.07,2.30,0),.026)
+	b.beam("iron",Vector3(0,2.30,0),Vector3(0,2.16,0),.016)
+	CampArt._lantern(b,Vector3(0,1.70,0))
+	var lamp := Geometry.mesh(world,b.finish(),position,Color.WHITE)
+	lamp.name = "ExpeditionTrailLamp"
+	lamp.material_override = null
+	var glow := OmniLight3D.new()
+	glow.position = position+Vector3(0,1.95,0)
+	glow.light_color = Color("ffd194")
+	glow.light_energy = 1.4
+	glow.omni_range = 4.5
+	world.add_child(glow)
+
 func _tent(position: Vector3, tint: Color) -> void:
 	ExpeditionArt.tent(world,position,tint)
 	obstacles.append(Rect2(Vector2(position.x-2.4,position.z-2.5),Vector2(4.8,5)))
@@ -295,6 +340,9 @@ func _base_site() -> void:
 		obstacles.append_array(CampArt.footprints(item[0],BASE_SITE+item[1]))
 
 func _tree_meshes() -> void:
+	if region == RegionLayout.FOREST:
+		ForestArt.draw_trees(world,tree_spots)
+		return
 	var trunks := Geometry.instances(world,ExpeditionArt.trunk_mesh(),tree_spots)
 	trunks.name = "BranchingTrunks"
 	trunks.material_override = ExpeditionArt.material("wood",Color("62523f"))

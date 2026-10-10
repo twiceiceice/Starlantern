@@ -14,29 +14,27 @@ func _ready() -> void:
 	var doorway := Node3D.new()
 	add_child(doorway)
 	# Behind the existing rear wall: the unexplored descent is a distant landmark.
-	doorway.position = Vector3(0, 7, -30.3)
-	portal = Geometry.ring(doorway, 3.8, Color("8dcfc9"), 0.11)
+	doorway.position = Vector3(0, 4.45, -30.28)
+	portal = Geometry.ring(doorway, 1.95, Color("8dcfc9"), 0.044)
 	portal.rotation.x = PI / 2
-	portal.material_override = Geometry.material(Color("8dcfc9"), 1.1)
+	portal.material_override = Geometry.material(Color("8fb5b3"), 0.65)
 	for i in range(5):
 		var angle := i * TAU / 5 - PI / 2
-		var rune := Geometry.box(doorway, Vector3(cos(angle) * 3.8, sin(angle) * 3.8, 0), Vector3(0.48, 0.48, 0.16), Color("e7d49f"))
+		var rune := Geometry.box(doorway, Vector3(cos(angle) * 1.95, sin(angle) * 1.95, 0), Vector3(0.20, 0.20, 0.065), Color("b1bea1"))
 		rune.rotation.z = angle
-		rune.material_override = Geometry.material(Color("e7d49f"), 0.6)
-	var beacon := Geometry.cylinder(self, Vector3(0, 21, -30.3), 0.22, 36, Color(0.55, 0.83, 0.82, 0.24), 0.05)
-	beacon.material_override = Geometry.material(Color(0.55, 0.83, 0.82, 0.24), 0.5)
+		rune.material_override = Geometry.material(Color("b1bea1"), 0.35)
+	var beacon := Geometry.cylinder(self, Vector3(0, 15, -31), 0.14, 25, Color(0.55, 0.83, 0.82, 0.13), 0.025)
+	beacon.material_override = Geometry.material(Color(0.55, 0.83, 0.82, 0.13), 0.3)
 	var lectern := Node3D.new()
 	lectern.name = "EntranceRecord"
 	lectern.position = ExpeditionCampaign.RECORD_POSITION
 	add_child(lectern)
-	Geometry.cylinder(lectern, Vector3(0, 0.3, 0), 0.65, 0.6, Color("708681"))
-	var tablet := Geometry.box(lectern, Vector3(0, 0.85, 0), Vector3(1.0, 0.14, 0.7), Color("c1cabb"))
-	tablet.rotation.x = 0.22
-	for i in range(3):
-		Geometry.box(lectern, Vector3(0, 0.97 + i * 0.04, -0.15 + i * 0.15), Vector3(0.60 - i * 0.10, 0.025, 0.035), Color("526a68"))
+	RuinArt.lectern(lectern)
 	record_glow = Geometry.ring(lectern, 1.0, Color("e8cf90"), 0.04)
 	record_glow.material_override = Geometry.material(Color("e8cf90"), 0.45)
 	record_caption = Geometry.label(lectern, "", 2.7, Color("f4e4b6"))
+	record_caption.visibility_range_end = 16
+	record_caption.no_depth_test = false
 	_refresh()
 
 func _process(_delta: float) -> void:

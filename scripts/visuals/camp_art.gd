@@ -65,10 +65,10 @@ class Sculpt:
 					var b := ij.y * TAU / 6
 					p.append(at + basis * Vector3(sin(a)*(radius+cos(b)*thickness),sin(b)*thickness,cos(a)*(radius+cos(b)*thickness)))
 				quad(kind,p[0],p[1],p[2],p[3])
-	func finish() -> ArrayMesh:
+	func finish(overrides: Dictionary = {}) -> ArrayMesh:
 		var result := ArrayMesh.new()
 		for kind: String in surfaces:
-			surfaces[kind].set_material(CampArt.surface_material(kind))
+			surfaces[kind].set_material(overrides[kind] if overrides.has(kind) else CampArt.surface_material(kind))
 			surfaces[kind].commit(result)
 		return result
 

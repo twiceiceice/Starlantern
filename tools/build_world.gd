@@ -9,7 +9,13 @@ func _run() -> void:
 		push_error("Run build_world.gd without --headless, or trees and grass are saved empty.")
 		quit(1)
 		return
-	for region in [RegionLayout.MEADOW, RegionLayout.FOREST]:
+	var regions := OS.get_cmdline_user_args()
+	if regions.is_empty(): regions = PackedStringArray([RegionLayout.MEADOW,RegionLayout.FOREST])
+	for region in regions:
+		if not RegionLayout.SCENES.has(region):
+			push_error("Unknown region: " + region)
+			quit(1)
+			return
 		var factory = load("res://scripts/world/region_world_factory.gd").new()
 		var world: Node3D = factory.build_region(region)
 		_assign_owner(world, world)

@@ -74,6 +74,8 @@ CharacterView는 현재 임시 메시를 만들고 걷기·공격·운반 포즈
 - 서로 다른 인부 둘의 도착을 기록하며 중복 도착으로 보상을 늘릴 수 없습니다.
 - 플레이어가 캠프에 도착해 정산해야 보상을 받습니다. 장부는 정산을 한 번만 허용합니다.
 - 첫 원정의 인부 둘은 무적 비전투 인력입니다. 진로 의뢰의 학자·호송 수레·보급품은 별도 ExpeditionEscort이며 피해·호위 실패를 처리합니다.
+- RuinArt의 석벽·관문은 메시 충돌과 바닥 내비게이션 범위를 함께 반영합니다. 아치 머리 위는 카메라 충돌만 막고 지상 통로를 열어 둡니다. 돌길·뿌리와 작은 잔해는 비충돌 장식입니다.
+- ForestArt의 줄기·수관·고사리는 MultiMesh입니다. ForestAtmosphere는 지역 장면의 복제된 Environment와 태양광만 조정하고, change_region에서 기존 플레이어를 관찰 대상으로 연결합니다. GameWorld의 정지를 따르며 LanternNetwork의 게임 규칙은 바꾸지 않습니다.
 
 길찾기는 NavigationRegion3D와 NavigationAgent3D를 사용합니다.
 저장된 NavigationMesh는 RegionLayout의 높이를 샘플링한 셀로 구성하며, 장애물·강물·급경사를 제외합니다. 다리에는 통행 가능한 중앙 통로를 연결합니다.
@@ -122,6 +124,7 @@ tests/run_tests.gd는 입력 방향·공격 범위·진행 장부에 이어 실�
 
 RegionLayout은 지역 경계, 지형 높이, 굽은 경로와 지역 이름을 공유합니다. region_world_factory.gd가 지형·물리·NavMesh를 함께 생성합니다.
 tools/build_world.gd는 실제 렌더러로 windmeadow.tscn과 forest_base.tscn을 저장합니다. 이전 expedition_valley.tscn은 보존합니다.
+사용자 인자로 `-- forest` 또는 `-- meadow`를 주면 해당 지역만 생성하며, 생략하면 두 지역을 모두 생성합니다.
 장면을 수동 편집했다면 재생성 전 생성 코드와 합쳐야 합니다. 지형은 2m 격자이며 길찾기는 초원 2m / 숲 1m 격자입니다.
 
 Game은 원정 장부·Caravan·플레이어·훈련 상태를 유지하고 지역 지형·내비게이션·MarchDirector·지역 적을 교체합니다.

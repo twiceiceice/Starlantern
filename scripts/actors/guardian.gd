@@ -131,8 +131,11 @@ func begin_attack() -> void:
 	marker = Node3D.new()
 	get_parent().add_child(marker)
 	marker.global_position = marker_center
-	Geometry.cylinder(marker, Vector3.ZERO, attack_radius, 0.025, Color(0.9, 0.29, 0.2, 0.25))
-	Geometry.ring(marker, attack_radius, Color("ee8160"), 0.06)
+	var fill := Geometry.cylinder(marker, Vector3.ZERO, attack_radius, 0.025, Color(0.9, 0.29, 0.2, 0.25))
+	var edge := Geometry.ring(marker, attack_radius, Color("ee8160"), 0.06)
+	# A danger telegraph must remain readable beneath canopy shadows and blue fog.
+	fill.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	edge.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
 func _victim() -> Node3D:
 	return protected_target if is_instance_valid(protected_target) and taunt_left <= 0 and float(protected_target.get("health")) > 0 else target

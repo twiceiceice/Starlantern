@@ -50,6 +50,10 @@ The environment profiles and surface shaders are also authored for this project.
 CampArt's workshop, kitchen, supply cart, wagon hardware and cargo, animal packs,
 and the texture-free camp fire shader are original procedural assets in
 scripts/visuals/camp_art.gd and assets/shaders/camp_fire.gdshader.
+The forest cedar/fern meshes and ruin gateway, masonry, paving, roots, record stone
+and minerals are original procedural assets in scripts/visuals/forest_art.gd and
+scripts/visuals/ruin_art.gd. The forest_foliage and ruin_stone shaders are original
+and use no external texture or model source.
 All current geometry, UI layout and attack effects are authored for this project.
 No external character model, texture pack,
 music or game franchise assets are included.
