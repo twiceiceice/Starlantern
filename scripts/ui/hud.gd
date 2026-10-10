@@ -44,6 +44,8 @@ var notice_time := 0.0
 var region_label: Label
 var travel_veil: ColorRect
 var travel_label: Label
+var camp_panel: Panel
+var camp_label: Label
 
 func _ready() -> void:
 	root = Control.new()
@@ -59,6 +61,9 @@ func _ready() -> void:
 	_label(heading, ExpeditionCampaign.TITLE, Vector2(20, 31), Vector2(265, 37), 27, PAPER)
 	var region_chip := _panel(root, Vector2(28, 119), Vector2(310, 36))
 	region_label = _label(region_chip, "", Vector2(15, 5), Vector2(280, 27), 15, GOLD)
+	camp_panel = _panel(root,Vector2(28,169),Vector2(310,155))
+	camp_panel.visible = false
+	camp_label = _label(camp_panel,"",Vector2(16,12),Vector2(278,133),15,PAPER)
 	var quest := _panel(root, Vector2(-445, 25), Vector2(417, 214), Vector2(1, 0))
 	title_label = _label(quest, "", Vector2(20, 14), Vector2(372, 30), 20, GOLD)
 	objective_label = _label(quest, "", Vector2(20, 51), Vector2(372, 105), 17, PAPER)

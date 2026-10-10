@@ -54,6 +54,8 @@ The forest cedar/fern meshes and ruin gateway, masonry, paving, roots, record st
 and minerals are original procedural assets in scripts/visuals/forest_art.gd and
 scripts/visuals/ruin_art.gd. The forest_foliage and ruin_stone shaders are original
 and use no external texture or model source.
+Camp work hammers, ladles and meal bowls are original procedural geometry in
+scripts/visuals/character_view.gd and scripts/app/camp_life.gd using CampArt materials.
 All current geometry, UI layout and attack effects are authored for this project.
 No external character model, texture pack,
 music or game franchise assets are included.

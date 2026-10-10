@@ -22,6 +22,7 @@ var action_clock := 0.0
 var previous_action := ""
 var hands: CharacterHands
 var feet: CharacterFeet
+var task_tool: Node3D
 
 func _ready() -> void:
 	body = MODEL.instantiate()
@@ -35,13 +36,13 @@ func _ready() -> void:
 		animator.get_animation(name).loop_mode = Animation.LOOP_LINEAR
 	for node in body.find_children("*", "MeshInstance3D", true, false):
 		if String(node.name).begins_with("Face"):
-			node.visible = String(node.name) == "Face" + occupation.capitalize()
+			node.visible = String(node.name) == "Face" + ("Carpenter" if occupation == "cook" else occupation.capitalize())
 		if node.name == "HeroArmor":
 			node.visible = occupation == "hero"
 		if node.name == "WorkApron":
-			node.visible = occupation == "carpenter"
+			node.visible = occupation in ["carpenter","cook"]
 		if node.name == "TravelPack":
-			node.visible = occupation != "carpenter"
+			node.visible = occupation not in ["carpenter","cook"]
 		for surface in node.mesh.get_surface_count():
 			var original: Material = node.mesh.surface_get_material(surface)
 			if original.resource_name in ["Coat", "CoatShade", "Linen", "Trousers", "Leather", "LeatherEdge"]:
@@ -65,6 +66,17 @@ func _ready() -> void:
 	for x in [-0.20, 0.20]:
 		Geometry.box(cargo, Vector3(x, 0, 0.181), Vector3(0.04, 0.38, 0.018), Color("b09062"))
 	cargo.visible = false
+	if occupation in ["carpenter","cook"]:
+		task_tool = Node3D.new()
+		add_child(task_tool)
+		var b := CampArt.Sculpt.new()
+		b.beam("wood",Vector3(0,.08,0),Vector3(0,-.70 if occupation == "cook" else -.45,0),.022)
+		if occupation == "cook":
+			b.lathe("wood",Vector3(0,-.78,0),[Vector2(.065,0),Vector2(.078,.045),Vector2(.040,.095)],Basis.IDENTITY,12)
+		else: b.box("iron",Vector3(0,-.48,0),Vector3(.23,.10,.11))
+		var mesh := Geometry.mesh(task_tool,b.finish(),Vector3.ZERO,Color.WHITE)
+		mesh.material_override = null
+		task_tool.hide()
 	if occupation == "hero":
 		focus = Node3D.new()
 		grip.add_child(focus)
@@ -104,6 +116,7 @@ func animate(delta: float, speed: float, grounded: bool, action: String = "", pr
 		previous_action = action
 	action_clock += delta
 	cargo.visible = carrying
+	if is_instance_valid(task_tool): task_tool.hide()
 	tool.visible = not carrying and not magic_focus and occupation in ["hero", "carpenter"]
 	if is_instance_valid(focus):
 		focus.visible = magic_focus and not carrying
@@ -142,3 +155,28 @@ func animate(delta: float, speed: float, grounded: bool, action: String = "", pr
 		hands.apply_cargo(cargo.transform)
 	elif occupation == "hero" and not magic_focus and action in ["slash", "slam"]:
 		hands.apply_axe(action, clampf(progress, 0, 1), tool.basis)
+
+func work_at(world_target: Vector3, action: String) -> void:
+	if not is_instance_valid(task_tool): return
+	tool.hide()
+	task_tool.show()
+	var toward := (global_position-world_target)*Vector3(1,0,1)
+	toward = toward.normalized()
+	var tip := world_target
+	var palm: Vector3
+	if action == "cook":
+		tip += Vector3(cos(action_clock*3)*.105,0,sin(action_clock*3)*.105)
+		palm = tip+Vector3.UP*.57+toward*.52
+	else:
+		tip += Vector3.UP*pow(absf(sin(action_clock*PI*1.7)),2)*.20
+		palm = tip+Vector3.UP*.45+toward*.22
+	var y := (palm-tip).normalized()
+	var x := global_basis.x
+	var z := x.cross(y).normalized()
+	x = y.cross(z).normalized()
+	task_tool.global_transform = Transform3D(Basis(x,y,z),palm)
+	var local := skeleton.global_transform.affine_inverse()*task_tool.global_transform
+	hands._hold("r",local.origin,local.basis,1)
+	var other := world_target+Vector3.UP*.12-toward*.03-global_basis.x*.18
+	if action == "cook": other = palm-global_basis.x*.22+toward*.10
+	hands._hold("l",skeleton.to_local(other),local.basis,1)

@@ -202,6 +202,7 @@ func _run() -> void:
 	await frames(15)
 	check(player.slam_cooldown < 3, "Resume restarts simulation")
 	await ForestTests.run(game,check,frames)
+	await CampLifeTests.run(game,check,frames)
 	await CareerTests.run(game,check,frames)
 	await RegionTests.run(game,check,frames)
 	game.free()

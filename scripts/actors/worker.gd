@@ -17,6 +17,7 @@ var progress := 0.0
 var repath := 0.0
 var destination := Vector3.ZERO
 var safe_to_work := false
+var shipping_ready := true
 
 func _ready() -> void:
 	collision_layer = 4
@@ -65,7 +66,7 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	var moving := false
-	if state in ["follow", "waiting"] and safe_to_work and _lit(work_position):
+	if state in ["follow", "waiting"] and safe_to_work and shipping_ready and _lit(work_position):
 		_set_state("to_work")
 	if state in ["follow", "waiting"]:
 		# Walk with the player only while the spot beside them is lit; otherwise hold at the light's edge.
@@ -118,3 +119,5 @@ func _update_caption() -> void:
 	var names := {"carpenter": "목수 로아", "porter": "운반원 누리"}
 	var states := {"camp": "출발 대기", "follow": "동행", "waiting": "빛을 기다리는 중", "to_work": "표본 채집장으로", "working": "탐사 표본 회수 중", "returning": "기지로 표본 운반 중", "delivered": "표본 귀환 완료"}
 	caption.text = "%s\n%s" % [names[job], states[state]]
+	if safe_to_work and not shipping_ready and state in ["follow","waiting"]:
+		caption.text = "%s\n목수의 회수 상자를 기다리는 중" % names[job]

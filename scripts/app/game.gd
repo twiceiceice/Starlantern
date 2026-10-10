@@ -7,6 +7,8 @@ var glow: LanternGlow
 var caravan := Caravan.new(RegionLayout.route())
 var director_snapshot: Dictionary = {}
 var forest_workers: Array = []
+var production := CampProduction.new()
+var camp_life: CampLife
 var region_lights := {RegionLayout.MEADOW: LanternNetwork.new(), RegionLayout.FOREST: LanternNetwork.new()}
 var cleared_guardians: Array[int] = []
 var portal_unlocked := false
@@ -95,7 +97,9 @@ func _ready() -> void:
 	hud.growth.closed.connect(close_growth)
 	hud.growth.contract_requested.connect(_choose_career)
 	hud.growth.equipment_requested.connect(_equip)
-	if "--smoke" in OS.get_cmdline_user_args() or "--smoke-regions" in OS.get_cmdline_user_args() or "--capture" in OS.get_cmdline_user_args(): save_enabled = false
+	production.changed.connect(_on_camp_changed)
+	production.completed.connect(_on_camp_product)
+	if "--smoke" in OS.get_cmdline_user_args() or "--smoke-regions" in OS.get_cmdline_user_args() or "--smoke-camp" in OS.get_cmdline_user_args() or "--capture" in OS.get_cmdline_user_args(): save_enabled = false
 	if save_enabled:
 		var saved := ExpeditionSave.read_checkpoint()
 		if not saved.is_empty(): restore_checkpoint(saved)
@@ -105,6 +109,8 @@ func _ready() -> void:
 		_smoke_run.call_deferred()
 	if "--smoke-regions" in OS.get_cmdline_user_args():
 		_smoke_regions.call_deferred()
+	if "--smoke-camp" in OS.get_cmdline_user_args():
+		_smoke_camp.call_deferred()
 	if "--capture" in OS.get_cmdline_user_args():
 		_capture.call_deferred()
 
@@ -123,6 +129,9 @@ func _process(delta: float) -> void:
 		hud.region_label.text = RegionLayout.NAMES[region_id]
 		hud.update_state(player, title_text(), objective_text(), status_text(), interaction_prompt(), 0 if get_tree().paused else delta)
 		hud.tactic_label.text = "K · 성장과 진로" if career.path.is_empty() else "R · %s%s  /  K 성장과 진로" % [CareerProgress.TACTICS[career.path],"  %.1f초" % arts.tactic_cooldown if arts.tactic_cooldown > 0 else " 준비",]
+		hud.camp_panel.visible = is_instance_valid(camp_life) and player.position.distance_to(RegionLayout.BASE) < 27
+		if hud.camp_panel.visible:
+			hud.camp_label.text = "원정대의 일\n목수 · %s\n회수품 · 인계 %d / 출하 %d\n취사 · 식자재 %d / 식사 %d\n배식대 E · 체력 +35" % ["상자 준비 완료" if production.kits_ready else "회수 상자 제작 중",production.cargo,production.shipments,production.ingredients,production.meals]
 
 func _unhandled_input(event: InputEvent) -> void:
 	if changing_region: return
@@ -267,6 +276,9 @@ func interaction_prompt() -> String:
 	if region_id == RegionLayout.MEADOW and player.position.distance_to(RegionLayout.CAMP_GATE) < 3.2 and not portal_unlocked:
 		return "도하를 마치면 전진 기지로 가는 보급로가 열립니다"
 	if region_id == RegionLayout.MEADOW and expedition.stage >= Expedition.Stage.BASE: return ""
+	if is_instance_valid(camp_life):
+		var food_prompt := camp_life.prompt(player)
+		if not food_prompt.is_empty(): return food_prompt
 	if expedition.stage == Expedition.Stage.COMPLETE: return missions.prompt()
 	var march_prompt := director.prompt()
 	if not march_prompt.is_empty():
@@ -295,6 +307,9 @@ func interact() -> void:
 		request_travel(destination)
 		return
 	if region_id == RegionLayout.MEADOW and expedition.stage >= Expedition.Stage.BASE: return
+	if is_instance_valid(camp_life) and camp_life.near_food(player):
+		if camp_life.eat(player): hud.notify("하루의 따뜻한 식사 · 체력을 회복했습니다.")
+		return
 	if expedition.stage == Expedition.Stage.COMPLETE:
 		if not missions.interact() and not career.active and missions.near_camp(): open_growth()
 		return
@@ -336,6 +351,7 @@ func _on_base_completed() -> void:
 		worker.set_home(director.base_center + Vector3(-2.3 if worker.worker_id == 0 else 2.3, 0, -1.5))
 	if expedition.stage == Expedition.Stage.RECOVERING:
 		_secure_site()
+	_sync_camp_life()
 
 func _on_enemy_defeated(_enemy: RuinGuardian) -> void:
 	var id := int(_enemy.get_meta("site_guardian", -1))
@@ -350,6 +366,7 @@ func _secure_site() -> void:
 
 func _on_delivery(worker: ExpeditionWorker) -> void:
 	if expedition.record_delivery(worker.worker_id):
+		production.receive("sample_%d" % worker.worker_id)
 		if expedition.stage == Expedition.Stage.REPORT:
 			hud.notify("기록과 표본이 모두 준비되었습니다. 전진 기지에서 E로 길드에 보고하세요.")
 		elif expedition.deliveries.size() == 2:
@@ -411,6 +428,7 @@ func _on_contract_reported() -> void:
 	expedition.resources.crystal += 4
 	player.health = 100
 	arts.reset_effects()
+	production.receive("contract_%s_%d" % [career.path,int(career.completed[career.path])])
 	_save_checkpoint()
 	hud.notify("길드 보고 완료 · %s! 목재 +8 · 별빛 조각 +4. K에서 다음 의뢰를 선택하세요." % career.title())
 	open_growth()
@@ -458,6 +476,7 @@ func _restore_legacy_checkpoint(saved: Dictionary) -> void:
 	camera_rig.position = player.position + Vector3(0,1.25,0)
 	started = true
 	_show_delivered_supplies()
+	_sync_camp_life()
 
 func _smoke_run() -> void:
 	# Deterministic command-line launch check; normal launches never use this path.
@@ -508,6 +527,35 @@ func _smoke_regions() -> void:
 			get_tree().quit(1)
 			return
 	print("REGIONS_SMOKE_OK: meadow -> crossing -> forest; campaign and supplies retained")
+	get_tree().quit()
+
+func _smoke_camp() -> void:
+	# Export dependency/workflow check: no real save is touched.
+	restore_checkpoint({"career":{},"training":{},"resources":{}})
+	production.restore({"started":true})
+	_sync_camp_life()
+	production.changed.emit()
+	player.position = Vector3(0,.05,12)
+	resume()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	for tick in 6600:
+		await get_tree().physics_frame
+		if get_tree().paused:
+			resume()
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		if production.shipments == 2 and production.cooked == 3: break
+	if not production.kits_ready or production.shipments != 2 or production.cooked != 3:
+		push_error("Exported camp work loop failed: "+str(production.to_data()))
+		get_tree().quit(1)
+		return
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		var error := get_viewport().get_texture().get_image().save_png(OS.get_executable_path().get_base_dir().path_join("camp-smoke.png"))
+		if error != OK:
+			push_error("Camp capture failed: "+error_string(error))
+			get_tree().quit(1)
+			return
+	print("CAMP_SMOKE_OK: packing crates delivered, two shipments exchanged, three meals served")
 	get_tree().quit()
 
 func _create_director() -> void:
@@ -594,6 +642,7 @@ func change_region(id: String, capture_previous: bool = true) -> void:
 		foe.remove_from_group("enemies")
 	if is_instance_valid(director): director.free()
 	if is_instance_valid(region_actors): region_actors.free()
+	camp_life = null
 	if is_instance_valid(glow): glow.free()
 	if is_instance_valid(landscape): landscape.free()
 	region_id = id
@@ -643,6 +692,37 @@ func change_region(id: String, capture_previous: bool = true) -> void:
 			worker.enlist()
 			if expedition.stage >= Expedition.Stage.RECOVERING: worker.secure_site()
 	if id == RegionLayout.FOREST and not forest_workers.is_empty(): _restore_workers(forest_workers)
+	_sync_camp_life()
+
+func _sync_camp_life() -> void:
+	if region_id != RegionLayout.FOREST or expedition.base_progress < 100: return
+	# Existing saves can resume with recovery already in progress.
+	if not production.started and (not expedition.deliveries.is_empty() or workers.any(func(w): return w.state in ["to_work","working","returning"])):
+		production.kits_ready = true
+		production.timber = 0
+	production.start()
+	for id in expedition.deliveries: production.receive("sample_%d" % int(id))
+	if not is_instance_valid(camp_life):
+		camp_life = CampLife.new()
+		camp_life.ledger = production
+		region_actors.add_child(camp_life)
+	for worker in workers:
+		worker.shipping_ready = production.kits_ready
+		worker._update_caption()
+
+func _on_camp_changed() -> void:
+	for worker in workers:
+		worker.shipping_ready = not production.started or production.kits_ready
+		worker._update_caption()
+	_save_checkpoint()
+
+func _on_camp_product(kind: String) -> void:
+	if kind == "meal": caravan.food = minf(2400,caravan.food+60)
+	if is_instance_valid(hud) and player.position.distance_to(RegionLayout.BASE) < 24:
+		var messages := {"crates":"세온이 회수 상자를 준비했습니다. 회수반이 사용할 수 있습니다.",
+			"shipment":"회수품 출하 완료 · 보급대에서 식자재 한 묶음이 들어왔습니다.",
+			"meal":"하루가 식사를 배식대에 놓았습니다. E로 먹으면 체력 +35 · 원정 식량 +60."}
+		hud.notify(messages[kind])
 
 static func _vector_data(point: Vector3) -> Array:
 	return [point.x, point.y, point.z]
@@ -688,11 +768,12 @@ func journey_data() -> Dictionary:
 		"expedition":expedition.to_data(), "director":director_snapshot.duplicate(true), "distance":caravan.distance,
 		"player":_vector_data(player.position), "health":player.health, "cleared":cleared_guardians.duplicate(),
 		"workers":_worker_data() if expedition.stage <= Expedition.Stage.MARCH else forest_workers,
-		"lamps":lamps}
+		"lamps":lamps,"production":production.to_data()}
 
 func restore_checkpoint(saved: Dictionary) -> void:
 	restoring = true
 	var journey: Dictionary = saved.get("journey", {}) if saved.get("journey", {}) is Dictionary else {}
+	production.restore(journey.get("production",{}) if journey.get("production",{}) is Dictionary else {})
 	if journey.is_empty():
 		# Version 1 files represent a finished expedition. Keep that progress intact.
 		portal_unlocked = true
